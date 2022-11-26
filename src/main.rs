@@ -1,27 +1,18 @@
-use std::fmt::Debug;
-mod add;
 mod constant;
-mod multiply;
-mod subtract;
-
-use crate::constant::Constant;
+mod expression;
 
 fn main() {}
 
-impl<T: Expression> Printable for &T {
-    #[inline]
-    fn latex(&self) -> String {
-        (*self).latex()
-    }
-    #[inline]
-    fn math_print(&self) -> String {
-        (*self).math_print()
-    }
-}
-
-trait Expression: Debug + Printable {
-    fn operation(&self) -> Operation;
-}
+// impl<T: Expression> Printable for T {
+//     #[inline]
+//     fn latex(&self) -> String {
+//         (*self).latex()
+//     }
+//     #[inline]
+//     fn math_print(&self) -> String {
+//         (*self).math_print()
+//     }
+// }
 
 #[derive(PartialEq)]
 enum Operation {
@@ -34,26 +25,34 @@ enum Operation {
 trait Printable {
     fn latex(&self) -> String;
     fn math_print(&self) -> String;
+    fn wrap_print_parens(&self, wrap: bool) -> String {
+        if wrap {
+            format!("({})", self.math_print())
+        } else {
+            self.math_print()
+        }
+    }
+    fn wrap_latex_parens(&self, wrap: bool) -> String {
+        if wrap {
+            format!("\\left({}\\right)", self.latex())
+        } else {
+            self.latex()
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::constant::Constant;
+
     use super::*;
 
     #[test]
     fn constants() {
         let pi = Constant::new(r"\pi");
-        insta::assert_debug_snapshot!(pi, @r###"
-        Constant {
-            name: "\\pi",
-        }
-        "###);
+        insta::assert_debug_snapshot!(pi, @"Constant π");
         let pi = Constant::new("π");
-        insta::assert_debug_snapshot!(pi, @r###"
-        Constant {
-            name: "\\pi",
-        }
-        "###);
+        insta::assert_debug_snapshot!(pi, @"Constant π");
     }
 
     #[test]
@@ -62,90 +61,45 @@ mod tests {
         let y = Constant::new("y");
         let pi = Constant::new(r"\pi");
 
-        let exp = x.clone() * y.clone() * pi.clone();
-        insta::assert_debug_snapshot!(exp, @r###"
-        Multiply {
-            lhs: Multiply {
-                lhs: Constant {
-                    name: "x",
-                },
-                rhs: Constant {
-                    name: "y",
-                },
-            },
-            rhs: Constant {
-                name: "\\pi",
-            },
-        }
-        "###);
+        let exp = &x * &y * &pi;
+
         insta::assert_snapshot!(exp.latex(), @r###"xy\pi"###);
         insta::assert_snapshot!(exp.math_print(), @"x * y * π");
 
-        let exp = x.clone() * (y.clone() * pi.clone());
-        insta::assert_debug_snapshot!(exp, @r###"
-        Multiply {
-            lhs: Constant {
-                name: "x",
-            },
-            rhs: Multiply {
-                lhs: Constant {
-                    name: "y",
-                },
-                rhs: Constant {
-                    name: "\\pi",
-                },
-            },
-        }
-        "###);
+        let exp = &x * (&y * &pi);
         insta::assert_snapshot!(exp.latex(), @r###"xy\pi"###);
         insta::assert_snapshot!(exp.math_print(), @"x * y * π");
+
+        // Check that non-reference constants can be used
+        let _exp3 = y * pi;
     }
 
     #[test]
-    fn add() {
+    fn add_subtract_neg() {
         let x = Constant::new("x");
         let y = Constant::new("y");
         let pi = Constant::new("\\pi");
 
-        let exp = (x.clone() * y.clone())
-            * ((y.clone() + pi.clone() + x.clone()) + (x.clone() - pi.clone()));
-        insta::assert_debug_snapshot!(exp, @r###"
-        Multiply {
-            lhs: Multiply {
-                lhs: Constant {
-                    name: "x",
-                },
-                rhs: Constant {
-                    name: "y",
-                },
-            },
-            rhs: Add {
-                lhs: Add {
-                    lhs: Add {
-                        lhs: Constant {
-                            name: "y",
-                        },
-                        rhs: Constant {
-                            name: "\\pi",
-                        },
-                    },
-                    rhs: Constant {
-                        name: "x",
-                    },
-                },
-                rhs: Subtract {
-                    lhs: Constant {
-                        name: "x",
-                    },
-                    rhs: Constant {
-                        name: "\\pi",
-                    },
-                },
-            },
-        }
-        "###);
-        insta::assert_snapshot!(exp.latex(), @r###"xy\left(y+\pi+x+\left(x-\pi\right)\right)"###);
-        insta::assert_snapshot!(exp.math_print(), @"x * y * (y + π + x + (x - π))");
+        let exp = &x + &y + &pi;
+
+        insta::assert_snapshot!(exp.latex(), @r###"x+y+\pi"###);
+        insta::assert_snapshot!(exp.math_print(), @"x + y + π");
+
+        // TODO: should this print differently than the one below?
+        let exp = &x + &y + -&pi;
+
+        insta::assert_snapshot!(exp.latex(), @r###"x+y-\pi"###);
+        insta::assert_snapshot!(exp.math_print(), @"x + y - π");
+
+        let exp = &x + &y - &pi;
+
+        insta::assert_snapshot!(exp.latex(), @r###"x+y-\pi"###);
+        insta::assert_snapshot!(exp.math_print(), @"x + y - π");
+
+        let exp = -(&x + &y) + &pi;
+
+        insta::assert_snapshot!(exp.latex(), @r###"-\left(x+y\right)+\pi"###);
+        insta::assert_snapshot!(exp.math_print(), @"-(x + y) + π");
     }
 
     #[test]
@@ -154,38 +108,8 @@ mod tests {
         let y = Constant::new("y");
         let pi = Constant::new("\\pi");
 
-        let exp = (x.clone() * y.clone()) * ((y.clone() - pi.clone()) - (x.clone() - pi.clone()));
-        insta::assert_debug_snapshot!(exp, @r###"
-        Multiply {
-            lhs: Multiply {
-                lhs: Constant {
-                    name: "x",
-                },
-                rhs: Constant {
-                    name: "y",
-                },
-            },
-            rhs: Subtract {
-                lhs: Subtract {
-                    lhs: Constant {
-                        name: "y",
-                    },
-                    rhs: Constant {
-                        name: "\\pi",
-                    },
-                },
-                rhs: Subtract {
-                    lhs: Constant {
-                        name: "x",
-                    },
-                    rhs: Constant {
-                        name: "\\pi",
-                    },
-                },
-            },
-        }
-        "###);
-        insta::assert_snapshot!(exp.latex(), @r###"xy\left(\left(y-\pi\right)-\left(x-\pi\right)\right)"###);
-        insta::assert_snapshot!(exp.math_print(), @"x * y * ((y - π) - (x - π))");
+        let exp = (&x * &y) * (&y - &pi) - (&x - &pi);
+        insta::assert_snapshot!(exp.latex(), @r###"\left(xy\left(y-\pi\right)\right)-\left(x-\pi\right)"###);
+        insta::assert_snapshot!(exp.math_print(), @"(x * y * (y - π)) - (x - π)");
     }
 }

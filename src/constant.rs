@@ -1,11 +1,20 @@
-use crate::add::Add;
-use crate::multiply::Multiply;
-use crate::subtract::Subtract;
-use crate::{Expression, Operation, Printable};
+use std::rc::Rc;
 
-#[derive(Clone, Debug)]
-pub(crate) struct Constant {
+use crate::{expression::Expression, Printable};
+
+struct ConstantInfo {
     name: String,
+}
+
+#[derive(Clone)]
+pub(crate) struct Constant {
+    info: Rc<ConstantInfo>,
+}
+
+impl std::fmt::Debug for Constant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Constant {}", self.math_print())
+    }
 }
 
 fn latex_to_unicode(latex: &str) -> Option<&'static str> {
@@ -33,53 +42,137 @@ impl Constant {
             }
         }
         Constant {
-            name: unicode_to_latex(name).to_owned(),
+            info: Rc::new(ConstantInfo {
+                name: unicode_to_latex(name).to_owned(),
+            }),
         }
     }
 }
 
-impl Expression for Constant {
-    fn operation(&self) -> Operation {
-        Operation::None
-    }
-}
+// impl Expression for &Constant {
+//     fn operation(&self) -> Operation {
+//         Operation::None
+//     }
+// }
 
 impl Printable for Constant {
     #[inline]
     fn latex(&self) -> String {
-        self.name.to_owned()
+        self.info.name.to_owned()
     }
     #[inline]
     fn math_print(&self) -> String {
-        latex_to_unicode(&self.name)
-            .unwrap_or(&self.name)
+        latex_to_unicode(&self.info.name)
+            .unwrap_or(&self.info.name)
             .to_owned()
     }
 }
 
-impl<T: Expression + 'static> std::ops::Mul<T> for Constant {
-    type Output = Multiply;
+// TODO: Borrow<Constant> type?
+// impl Printable for &Constant {
+//     #[inline]
+//     fn latex(&self) -> String {
+//         (*self).latex()
+//     }
+
+//     #[inline]
+//     fn math_print(&self) -> String {
+//         (*self).math_print()
+//     }
+// }
+
+impl From<&Constant> for Expression {
+    #[inline]
+    fn from(constant: &Constant) -> Self {
+        Expression::Constant(constant.clone())
+    }
+}
+impl From<Constant> for Expression {
+    #[inline]
+    fn from(constant: Constant) -> Self {
+        Expression::Constant(constant)
+    }
+}
+
+impl<T: Into<Expression>> std::ops::Mul<T> for &Constant {
+    type Output = Expression;
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        Multiply::new(Box::new(self), Box::new(rhs))
+        Expression::Product {
+            terms: vec![self.into(), rhs.into()],
+        }
     }
 }
 
-impl<T: Expression + 'static> std::ops::Sub<T> for Constant {
-    type Output = Subtract;
+impl<T: Into<Expression>> std::ops::Mul<T> for Constant {
+    type Output = Expression;
 
     #[inline]
-    fn sub(self, rhs: T) -> Self::Output {
-        Subtract::new(Box::new(self), Box::new(rhs))
+    fn mul(self, rhs: T) -> Self::Output {
+        Expression::Product {
+            terms: vec![self.into(), rhs.into()],
+        }
     }
 }
 
-impl<T: Expression + 'static> std::ops::Add<T> for Constant {
-    type Output = Add;
+impl<T: Into<Expression>> std::ops::Add<T> for &Constant {
+    type Output = Expression;
 
     #[inline]
     fn add(self, rhs: T) -> Self::Output {
-        Add::new(Box::new(self), Box::new(rhs))
+        Expression::Sum {
+            terms: vec![self.into(), rhs.into()],
+        }
+    }
+}
+
+impl<T: Into<Expression>> std::ops::Add<T> for Constant {
+    type Output = Expression;
+
+    #[inline]
+    fn add(self, rhs: T) -> Self::Output {
+        Expression::Sum {
+            terms: vec![self.into(), rhs.into()],
+        }
+    }
+}
+
+impl<T: Into<Expression>> std::ops::Sub<T> for &Constant {
+    type Output = Expression;
+
+    #[inline]
+    fn sub(self, rhs: T) -> Self::Output {
+        Expression::Sum {
+            terms: vec![self.into(), -rhs.into()],
+        }
+    }
+}
+impl<T: Into<Expression>> std::ops::Sub<T> for Constant {
+    type Output = Expression;
+
+    #[inline]
+    fn sub(self, rhs: T) -> Self::Output {
+        Expression::Sum {
+            terms: vec![self.into(), -rhs.into()],
+        }
+    }
+}
+
+impl std::ops::Neg for Constant {
+    type Output = Expression;
+
+    #[inline]
+    fn neg(self) -> Self::Output {
+        Expression::Negate(Box::new(self.into()))
+    }
+}
+
+impl std::ops::Neg for &Constant {
+    type Output = Expression;
+
+    #[inline]
+    fn neg(self) -> Self::Output {
+        Expression::Negate(Box::new(self.into()))
     }
 }

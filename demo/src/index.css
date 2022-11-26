@@ -1,0 +1,13 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+
+  gap: 1em;
+  font-size: 1.5rem;
+  font-family: "Times New Roman";
+}

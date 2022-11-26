@@ -1,0 +1,37 @@
+.app {
+  display: grid;
+  grid-auto-flow: row;
+  width: 80rem;
+  max-width: 100%;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.math-output {
+  font-size: 1.5em;
+  max-width: 100vw;
+  overflow-x: auto;
+}
+.math-output > * {
+  padding: 0.75em;
+  width: fit-content;
+  margin: 0 auto;
+}
+.katex-display {
+  margin: 0;
+}
+
+.math-input {
+  font-family: "Fira Mono", "Source Code Pro", monospace;
+  align-self: stretch;
+  font-size: 0.9em;
+  padding: 0.25em;
+  margin: 0.5em;
+  border: 0.1em solid #00000038;
+  border-radius: 0.2em;
+}
+
+.math-input:focus {
+  outline: none;
+  border-color: #005baa78;
+}
