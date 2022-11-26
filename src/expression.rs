@@ -34,7 +34,7 @@ impl Printable for Expression {
                         (
                             inner_term.wrap_latex_parens(!matches!(
                                 inner_term.as_ref(),
-                                &Expression::Constant(..)
+                                &Expression::Constant(..) | &Expression::Product { .. }
                             )),
                             true,
                         )
@@ -42,7 +42,9 @@ impl Printable for Expression {
                         (
                             term.wrap_latex_parens(!matches!(
                                 term,
-                                &Expression::Sum { .. } | &Expression::Constant(..)
+                                &Expression::Sum { .. }
+                                    | &Expression::Constant(..)
+                                    | &Expression::Product { .. }
                             )),
                             false,
                         )

@@ -109,7 +109,15 @@ mod tests {
         let pi = Constant::new("\\pi");
 
         let exp = (&x * &y) * (&y - &pi) - (&x - &pi);
-        insta::assert_snapshot!(exp.latex(), @r###"\left(xy\left(y-\pi\right)\right)-\left(x-\pi\right)"###);
+        insta::assert_snapshot!(exp.latex(), @r###"xy\left(y-\pi\right)-\left(x-\pi\right)"###);
         insta::assert_snapshot!(exp.math_print(), @"(x * y * (y - π)) - (x - π)");
+
+        let exp = -&pi * &x + &y * (-&y) * &y - &x * (&pi - &x);
+        // Yes, the parens around the negative signs should be there.
+        // It makes it more clear when substitutions have happened.
+        // And the parens will be removed
+        // when the negative sign is moved outwards during simplification steps.
+        insta::assert_snapshot!(exp.latex(), @r###"\left(-\pi\right)x+y\left(-y\right)y-x\left(\pi-x\right)"###);
+        insta::assert_snapshot!(exp.math_print(), @"((-π) * x) + (y * (-y) * y) - (x * (π - x))");
     }
 }
