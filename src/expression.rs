@@ -1,10 +1,10 @@
-use crate::{constant::Constant, Printable};
+use crate::{constant::Constant, product::Product, sum::Sum, Printable};
 
 pub(crate) enum Expression {
     Constant(Constant),
-    Product { terms: Vec<Expression> },
-    Sum { terms: Vec<Expression> },
-    Negate(Box<Expression>),
+    Product(Product),
+    Sum(Sum),
+    Negation(Box<Expression>),
 }
 
 impl std::fmt::Debug for Expression {
@@ -17,54 +17,14 @@ impl Printable for Expression {
     fn latex(&self) -> String {
         match self {
             Expression::Constant(constant) => constant.latex(),
-            Expression::Product { terms } => terms
-                .iter()
-                .map(|term| {
-                    term.wrap_latex_parens(!matches!(
-                        term,
-                        &Expression::Product { .. } | &Expression::Constant(..)
-                    ))
-                })
-                .collect(),
-            Expression::Sum { terms } => terms
-                .iter()
-                .enumerate()
-                .map(|(i, term)| {
-                    let (inner, is_neg) = if let Expression::Negate(inner_term) = term {
-                        (
-                            inner_term.wrap_latex_parens(!matches!(
-                                inner_term.as_ref(),
-                                &Expression::Constant(..) | &Expression::Product { .. }
-                            )),
-                            true,
-                        )
-                    } else {
-                        (
-                            term.wrap_latex_parens(!matches!(
-                                term,
-                                &Expression::Sum { .. }
-                                    | &Expression::Constant(..)
-                                    | &Expression::Product { .. }
-                            )),
-                            false,
-                        )
-                    };
-                    if i != 0 {
-                        if is_neg {
-                            format!("-{}", inner)
-                        } else {
-                            format!("+{}", inner)
-                        }
-                    } else if is_neg {
-                        format!("-{}", inner)
-                    } else {
-                        inner
-                    }
-                })
-                .collect(),
-            Expression::Negate(exp) => format!(
+            Expression::Product(product) => product.latex(),
+            Expression::Sum(sum) => sum.latex(),
+            Expression::Negation(exp) => format!(
                 "-{}",
-                exp.wrap_latex_parens(!matches!(exp.as_ref(), &Expression::Constant(..)))
+                match exp.as_ref() {
+                    &Expression::Constant(..) => exp.latex(),
+                    _ => exp.latex_with_parens(),
+                }
             ),
         }
     }
@@ -72,58 +32,14 @@ impl Printable for Expression {
     fn math_print(&self) -> String {
         match self {
             Expression::Constant(constant) => constant.math_print(),
-            Expression::Product { terms } => terms
-                .iter()
-                .enumerate()
-                .map(|(i, term)| {
-                    let inner = term.wrap_print_parens(!matches!(
-                        term,
-                        &Expression::Product { .. } | &Expression::Constant(..)
-                    ));
-                    if i != 0 {
-                        format!(" * {}", inner)
-                    } else {
-                        inner
-                    }
-                })
-                .collect(),
-            Expression::Sum { terms } => terms
-                .iter()
-                .enumerate()
-                .map(|(i, term)| {
-                    let (inner, is_neg) = if let Expression::Negate(inner_term) = term {
-                        (
-                            inner_term.wrap_print_parens(!matches!(
-                                inner_term.as_ref(),
-                                &Expression::Constant(..)
-                            )),
-                            true,
-                        )
-                    } else {
-                        (
-                            term.wrap_print_parens(!matches!(
-                                term,
-                                &Expression::Sum { .. } | &Expression::Constant(..)
-                            )),
-                            false,
-                        )
-                    };
-                    if i != 0 {
-                        if is_neg {
-                            format!(" - {}", inner)
-                        } else {
-                            format!(" + {}", inner)
-                        }
-                    } else if is_neg {
-                        format!("-{}", inner)
-                    } else {
-                        inner
-                    }
-                })
-                .collect(),
-            Expression::Negate(exp) => format!(
+            Expression::Product(product) => product.math_print(),
+            Expression::Sum(sum) => sum.math_print(),
+            Expression::Negation(exp) => format!(
                 "-{}",
-                exp.wrap_print_parens(!matches!(exp.as_ref(), &Expression::Constant(..)))
+                match exp.as_ref() {
+                    &Expression::Constant(..) => exp.math_print(),
+                    _ => exp.math_print_with_parens(),
+                }
             ),
         }
     }
@@ -134,9 +50,9 @@ impl<T: Into<Expression>> std::ops::Mul<T> for Expression {
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        Expression::Product {
+        Expression::Product(Product {
             terms: vec![self, rhs.into()],
-        }
+        })
     }
 }
 
@@ -145,9 +61,9 @@ impl<T: Into<Expression>> std::ops::Add<T> for Expression {
 
     #[inline]
     fn add(self, rhs: T) -> Self::Output {
-        Expression::Sum {
+        Expression::Sum(Sum {
             terms: vec![self, rhs.into()],
-        }
+        })
     }
 }
 
@@ -156,9 +72,9 @@ impl<T: Into<Expression>> std::ops::Sub<T> for Expression {
 
     #[inline]
     fn sub(self, rhs: T) -> Self::Output {
-        Expression::Sum {
+        Expression::Sum(Sum {
             terms: vec![self, -rhs.into()],
-        }
+        })
     }
 }
 
@@ -167,6 +83,6 @@ impl std::ops::Neg for Expression {
 
     #[inline]
     fn neg(self) -> Self::Output {
-        Expression::Negate(Box::new(self))
+        Expression::Negation(Box::new(self))
     }
 }

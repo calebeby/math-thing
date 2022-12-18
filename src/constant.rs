@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{expression::Expression, Printable};
+use crate::{expression::Expression, product::Product, sum::Sum, Printable};
 
 struct ConstantInfo {
     name: String,
@@ -99,9 +99,9 @@ impl<T: Into<Expression>> std::ops::Mul<T> for &Constant {
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        Expression::Product {
+        Expression::Product(Product {
             terms: vec![self.into(), rhs.into()],
-        }
+        })
     }
 }
 
@@ -110,9 +110,9 @@ impl<T: Into<Expression>> std::ops::Mul<T> for Constant {
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        Expression::Product {
+        Expression::Product(Product {
             terms: vec![self.into(), rhs.into()],
-        }
+        })
     }
 }
 
@@ -121,9 +121,9 @@ impl<T: Into<Expression>> std::ops::Add<T> for &Constant {
 
     #[inline]
     fn add(self, rhs: T) -> Self::Output {
-        Expression::Sum {
+        Expression::Sum(Sum {
             terms: vec![self.into(), rhs.into()],
-        }
+        })
     }
 }
 
@@ -132,9 +132,9 @@ impl<T: Into<Expression>> std::ops::Add<T> for Constant {
 
     #[inline]
     fn add(self, rhs: T) -> Self::Output {
-        Expression::Sum {
+        Expression::Sum(Sum {
             terms: vec![self.into(), rhs.into()],
-        }
+        })
     }
 }
 
@@ -143,9 +143,9 @@ impl<T: Into<Expression>> std::ops::Sub<T> for &Constant {
 
     #[inline]
     fn sub(self, rhs: T) -> Self::Output {
-        Expression::Sum {
+        Expression::Sum(Sum {
             terms: vec![self.into(), -rhs.into()],
-        }
+        })
     }
 }
 impl<T: Into<Expression>> std::ops::Sub<T> for Constant {
@@ -153,9 +153,9 @@ impl<T: Into<Expression>> std::ops::Sub<T> for Constant {
 
     #[inline]
     fn sub(self, rhs: T) -> Self::Output {
-        Expression::Sum {
+        Expression::Sum(Sum {
             terms: vec![self.into(), -rhs.into()],
-        }
+        })
     }
 }
 
@@ -164,7 +164,7 @@ impl std::ops::Neg for Constant {
 
     #[inline]
     fn neg(self) -> Self::Output {
-        Expression::Negate(Box::new(self.into()))
+        Expression::Negation(Box::new(self.into()))
     }
 }
 
@@ -173,6 +173,6 @@ impl std::ops::Neg for &Constant {
 
     #[inline]
     fn neg(self) -> Self::Output {
-        Expression::Negate(Box::new(self.into()))
+        Expression::Negation(Box::new(self.into()))
     }
 }
