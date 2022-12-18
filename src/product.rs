@@ -33,3 +33,14 @@ impl Printable for Product {
             .collect()
     }
 }
+
+impl<T: Into<Expression>> std::ops::Mul<T> for Expression {
+    type Output = Expression;
+
+    #[inline]
+    fn mul(self, rhs: T) -> Self::Output {
+        Expression::Product(Product {
+            terms: vec![self, rhs.into()],
+        })
+    }
+}

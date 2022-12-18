@@ -45,39 +45,6 @@ impl Printable for Expression {
     }
 }
 
-impl<T: Into<Expression>> std::ops::Mul<T> for Expression {
-    type Output = Expression;
-
-    #[inline]
-    fn mul(self, rhs: T) -> Self::Output {
-        Expression::Product(Product {
-            terms: vec![self, rhs.into()],
-        })
-    }
-}
-
-impl<T: Into<Expression>> std::ops::Add<T> for Expression {
-    type Output = Expression;
-
-    #[inline]
-    fn add(self, rhs: T) -> Self::Output {
-        Expression::Sum(Sum {
-            terms: vec![self, rhs.into()],
-        })
-    }
-}
-
-impl<T: Into<Expression>> std::ops::Sub<T> for Expression {
-    type Output = Expression;
-
-    #[inline]
-    fn sub(self, rhs: T) -> Self::Output {
-        Expression::Sum(Sum {
-            terms: vec![self, -rhs.into()],
-        })
-    }
-}
-
 impl std::ops::Neg for Expression {
     type Output = Expression;
 

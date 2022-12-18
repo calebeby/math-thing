@@ -81,3 +81,25 @@ impl Printable for Sum {
             .collect()
     }
 }
+
+impl<T: Into<Expression>> std::ops::Add<T> for Expression {
+    type Output = Expression;
+
+    #[inline]
+    fn add(self, rhs: T) -> Self::Output {
+        Expression::Sum(Sum {
+            terms: vec![self, rhs.into()],
+        })
+    }
+}
+
+impl<T: Into<Expression>> std::ops::Sub<T> for Expression {
+    type Output = Expression;
+
+    #[inline]
+    fn sub(self, rhs: T) -> Self::Output {
+        Expression::Sum(Sum {
+            terms: vec![self, -rhs.into()],
+        })
+    }
+}
