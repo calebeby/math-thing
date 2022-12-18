@@ -1,11 +1,13 @@
 import { useComputed, useSignal } from "@preact/signals";
 import katex from "katex";
+import "katex/contrib/copy-tex";
 import "katex/dist/katex.min.css";
 import "./app.css";
 
 export function App() {
   const mathRaw = useSignal(
-    String.raw`\cos(\theta)=\frac{e^{i\theta}+e^{-i\theta}}{2}`
+    // String.raw`\cos(\theta)=\frac{e^{i\theta}+e^{-i\theta}}{2}`
+    String.raw`-\frac{\hbar^2}{2m}\frac{\partial^2\psi}{\partial x^2} = i\hbar\frac{\partial \psi}{\partial t}`
   );
 
   const mathOutput = useComputed(() => {
