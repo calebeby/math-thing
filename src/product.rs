@@ -12,11 +12,17 @@ impl Printable for Product {
     fn latex(&self) -> String {
         self.terms
             .iter()
-            .map(|term| {
-                if term.precedence() <= PRECEDENCE_PRODUCT {
+            .enumerate()
+            .map(|(i, term)| {
+                let inner = if term.precedence() <= PRECEDENCE_PRODUCT {
                     term.latex_with_parens()
                 } else {
                     term.latex()
+                };
+                if i != 0 {
+                    format!(" {}", inner)
+                } else {
+                    inner
                 }
             })
             .collect()

@@ -2,8 +2,8 @@ use crate::{constant::Constant, product::Product, sum::Sum, Printable};
 
 pub(crate) const PRECEDENCE_SUM: usize = 1;
 pub(crate) const PRECEDENCE_PRODUCT: usize = 2;
-pub(crate) const PRECEDENCE_NEGATION: usize = 2;
-pub(crate) const PRECEDENCE_CONSTANT: usize = 3;
+pub(crate) const PRECEDENCE_NEGATION: usize = 3;
+pub(crate) const PRECEDENCE_CONSTANT: usize = 4;
 
 #[derive(Clone)]
 pub(crate) enum Expression {
