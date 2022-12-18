@@ -1,10 +1,27 @@
 use crate::{constant::Constant, product::Product, sum::Sum, Printable};
 
+pub(crate) const PRECEDENCE_SUM: usize = 1;
+pub(crate) const PRECEDENCE_PRODUCT: usize = 2;
+pub(crate) const PRECEDENCE_NEGATION: usize = 2;
+pub(crate) const PRECEDENCE_CONSTANT: usize = 3;
+
+#[derive(Clone)]
 pub(crate) enum Expression {
     Constant(Constant),
     Product(Product),
     Sum(Sum),
     Negation(Box<Expression>),
+}
+
+impl Expression {
+    pub(crate) const fn precedence(&self) -> usize {
+        match self {
+            Expression::Sum(..) => PRECEDENCE_SUM,
+            Expression::Product(..) => PRECEDENCE_PRODUCT,
+            Expression::Negation(..) => PRECEDENCE_NEGATION,
+            Expression::Constant(..) => PRECEDENCE_CONSTANT,
+        }
+    }
 }
 
 impl std::fmt::Debug for Expression {

@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{expression::Expression, product::Product, sum::Sum, Printable};
+use crate::{expression::Expression, sum::Sum, Printable};
 
 struct ConstantInfo {
     name: String,
@@ -49,12 +49,6 @@ impl Constant {
     }
 }
 
-// impl Expression for &Constant {
-//     fn operation(&self) -> Operation {
-//         Operation::None
-//     }
-// }
-
 impl Printable for Constant {
     #[inline]
     fn latex(&self) -> String {
@@ -67,19 +61,6 @@ impl Printable for Constant {
             .to_owned()
     }
 }
-
-// TODO: Borrow<Constant> type?
-// impl Printable for &Constant {
-//     #[inline]
-//     fn latex(&self) -> String {
-//         (*self).latex()
-//     }
-
-//     #[inline]
-//     fn math_print(&self) -> String {
-//         (*self).math_print()
-//     }
-// }
 
 impl From<&Constant> for Expression {
     #[inline]
@@ -99,9 +80,8 @@ impl<T: Into<Expression>> std::ops::Mul<T> for &Constant {
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        Expression::Product(Product {
-            terms: vec![self.into(), rhs.into()],
-        })
+        let expr: Expression = self.into();
+        expr * rhs.into()
     }
 }
 
@@ -110,9 +90,8 @@ impl<T: Into<Expression>> std::ops::Mul<T> for Constant {
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        Expression::Product(Product {
-            terms: vec![self.into(), rhs.into()],
-        })
+        let expr: Expression = self.into();
+        expr * rhs.into()
     }
 }
 
@@ -121,20 +100,17 @@ impl<T: Into<Expression>> std::ops::Add<T> for &Constant {
 
     #[inline]
     fn add(self, rhs: T) -> Self::Output {
-        Expression::Sum(Sum {
-            terms: vec![self.into(), rhs.into()],
-        })
+        let expr: Expression = self.into();
+        expr + rhs.into()
     }
 }
-
 impl<T: Into<Expression>> std::ops::Add<T> for Constant {
     type Output = Expression;
 
     #[inline]
     fn add(self, rhs: T) -> Self::Output {
-        Expression::Sum(Sum {
-            terms: vec![self.into(), rhs.into()],
-        })
+        let expr: Expression = self.into();
+        expr + rhs.into()
     }
 }
 
@@ -143,9 +119,8 @@ impl<T: Into<Expression>> std::ops::Sub<T> for &Constant {
 
     #[inline]
     fn sub(self, rhs: T) -> Self::Output {
-        Expression::Sum(Sum {
-            terms: vec![self.into(), -rhs.into()],
-        })
+        let expr: Expression = self.into();
+        expr - rhs.into()
     }
 }
 impl<T: Into<Expression>> std::ops::Sub<T> for Constant {
@@ -153,9 +128,8 @@ impl<T: Into<Expression>> std::ops::Sub<T> for Constant {
 
     #[inline]
     fn sub(self, rhs: T) -> Self::Output {
-        Expression::Sum(Sum {
-            terms: vec![self.into(), -rhs.into()],
-        })
+        let expr: Expression = self.into();
+        expr - rhs.into()
     }
 }
 
@@ -164,15 +138,16 @@ impl std::ops::Neg for Constant {
 
     #[inline]
     fn neg(self) -> Self::Output {
-        Expression::Negation(Box::new(self.into()))
+        let expr: Expression = self.into();
+        -expr
     }
 }
-
 impl std::ops::Neg for &Constant {
     type Output = Expression;
 
     #[inline]
     fn neg(self) -> Self::Output {
-        Expression::Negation(Box::new(self.into()))
+        let expr: Expression = self.into();
+        -expr
     }
 }

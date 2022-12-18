@@ -1,5 +1,9 @@
-use crate::{expression::Expression, Printable};
+use crate::{
+    expression::{Expression, PRECEDENCE_SUM},
+    Printable,
+};
 
+#[derive(Clone)]
 pub(crate) struct Sum {
     pub(crate) terms: Vec<Expression>,
 }
@@ -10,33 +14,25 @@ impl Printable for Sum {
             .iter()
             .enumerate()
             .map(|(i, term)| {
-                let (inner, is_neg) = if let Expression::Negation(inner_term) = term {
-                    (
-                        match inner_term.as_ref() {
-                            &Expression::Constant(..) | &Expression::Product { .. } => {
-                                inner_term.latex()
-                            }
-                            _ => inner_term.latex_with_parens(),
-                        },
-                        true,
-                    )
+                if let Expression::Negation(inner) = term {
+                    let inner_printed = if inner.precedence() <= PRECEDENCE_SUM {
+                        inner.latex_with_parens()
+                    } else {
+                        inner.latex()
+                    };
+                    format!("-{}", inner_printed)
                 } else {
-                    (
-                        match term {
-                            &Expression::Sum { .. }
-                            | &Expression::Constant(..)
-                            | &Expression::Product { .. } => term.latex(),
-                            _ => term.latex_with_parens(),
-                        },
-                        false,
-                    )
-                };
-                if is_neg {
-                    format!("-{}", inner)
-                } else if i != 0 {
-                    format!("+{}", inner)
-                } else {
-                    inner
+                    let inner_printed = if term.precedence() <= PRECEDENCE_SUM {
+                        term.latex_with_parens()
+                    } else {
+                        term.latex()
+                    };
+
+                    if i == 0 {
+                        inner_printed
+                    } else {
+                        format!("+{}", inner_printed)
+                    }
                 }
             })
             .collect()
@@ -47,35 +43,28 @@ impl Printable for Sum {
             .iter()
             .enumerate()
             .map(|(i, term)| {
-                let (inner, is_neg) = if let Expression::Negation(inner_term) = term {
-                    (
-                        match inner_term.as_ref() {
-                            &Expression::Constant(..) => inner_term.math_print(),
-                            _ => inner_term.math_print_with_parens(),
-                        },
-                        true,
-                    )
-                } else {
-                    (
-                        match term {
-                            &Expression::Sum { .. } | &Expression::Constant(..) => {
-                                term.math_print()
-                            }
-                            _ => term.math_print_with_parens(),
-                        },
-                        false,
-                    )
-                };
-                if i != 0 {
-                    if is_neg {
-                        format!(" - {}", inner)
+                if let Expression::Negation(inner) = term {
+                    let inner_printed = if inner.precedence() <= PRECEDENCE_SUM {
+                        inner.math_print_with_parens()
                     } else {
-                        format!(" + {}", inner)
+                        inner.math_print()
+                    };
+                    if i == 0 {
+                        format!("-{}", inner_printed)
+                    } else {
+                        format!(" - {}", inner_printed)
                     }
-                } else if is_neg {
-                    format!("-{}", inner)
                 } else {
-                    inner
+                    let inner_printed = if term.precedence() <= PRECEDENCE_SUM {
+                        term.math_print_with_parens()
+                    } else {
+                        term.math_print()
+                    };
+                    if i == 0 {
+                        inner_printed
+                    } else {
+                        format!(" + {}", inner_printed)
+                    }
                 }
             })
             .collect()
@@ -88,7 +77,18 @@ impl<T: Into<Expression>> std::ops::Add<T> for Expression {
     #[inline]
     fn add(self, rhs: T) -> Self::Output {
         Expression::Sum(Sum {
-            terms: vec![self, rhs.into()],
+            terms: match (self, rhs.into()) {
+                (Expression::Sum(p1), Expression::Sum(p2)) => {
+                    p1.terms.into_iter().chain(p2.terms.into_iter()).collect()
+                }
+                (Expression::Sum(p1), exp2) => {
+                    p1.terms.into_iter().chain(std::iter::once(exp2)).collect()
+                }
+                (exp1, Expression::Sum(p2)) => {
+                    std::iter::once(exp1).chain(p2.terms.into_iter()).collect()
+                }
+                (exp1, exp2) => vec![exp1, exp2],
+            },
         })
     }
 }
@@ -98,8 +98,16 @@ impl<T: Into<Expression>> std::ops::Sub<T> for Expression {
 
     #[inline]
     fn sub(self, rhs: T) -> Self::Output {
+        let rhs_exp = -rhs.into();
         Expression::Sum(Sum {
-            terms: vec![self, -rhs.into()],
+            terms: match self {
+                Expression::Sum(p1) => p1
+                    .terms
+                    .into_iter()
+                    .chain(std::iter::once(rhs_exp))
+                    .collect(),
+                exp1 => vec![exp1, rhs_exp],
+            },
         })
     }
 }
