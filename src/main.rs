@@ -43,7 +43,6 @@ mod tests {
         insta::assert_snapshot!(exp.math_print(), @"x + y + π");
         insta::assert_snapshot!(exp.latex(), @r###"x+y+\pi"###);
 
-        // TODO: should this print differently than the one below?
         let exp = &x + &y + -&pi;
 
         insta::assert_snapshot!(exp.math_print(), @"x + y - π");
@@ -68,8 +67,8 @@ mod tests {
         // It makes it more clear when substitutions have happened.
         // And the parens will be removed
         // when the negative sign is moved outwards during simplification steps.
-        insta::assert_snapshot!(exp.math_print(), @"-π * x + y * -y * y - x * (π - x)");
-        insta::assert_snapshot!(exp.latex(), @r###"-\pi x+y -y y-x \left(\pi-x\right)"###);
+        insta::assert_snapshot!(exp.math_print(), @"(-π) * x + y * (-y) * y - x * (π - x)");
+        insta::assert_snapshot!(exp.latex(), @r###"\left(-\pi\right) x+y \left(-y\right) y-x \left(\pi-x\right)"###);
 
         // Check that non-reference constants can be used
         let exp = y * pi;
