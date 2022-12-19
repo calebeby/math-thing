@@ -23,15 +23,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn constants() {
-        let pi = Constant::new(r"\pi");
-        insta::assert_debug_snapshot!(pi, @"Constant π");
-        let pi = Constant::new("π");
-        insta::assert_debug_snapshot!(pi, @"Constant π");
-    }
-
-    #[test]
-    fn multiplication() {
+    fn printing() {
         let x = Constant::new("x");
         let y = Constant::new("y");
         let pi = Constant::new(r"\pi");
@@ -45,18 +37,6 @@ mod tests {
         println!("{exp:?}");
         insta::assert_snapshot!(exp.math_print(), @"x * y * π");
         insta::assert_snapshot!(exp.latex(), @r###"x y \pi"###);
-
-        // Check that non-reference constants can be used
-        let exp = y * pi;
-        insta::assert_snapshot!(exp.math_print(), @"y * π");
-        insta::assert_snapshot!(exp.latex(), @r###"y \pi"###);
-    }
-
-    #[test]
-    fn add_subtract_neg() {
-        let x = Constant::new("x");
-        let y = Constant::new("y");
-        let pi = Constant::new("\\pi");
 
         let exp = &x + &y + &pi;
 
@@ -78,13 +58,6 @@ mod tests {
 
         insta::assert_snapshot!(exp.math_print(), @"-(x + y) + π");
         insta::assert_snapshot!(exp.latex(), @r###"-\left(x+y\right)+\pi"###);
-    }
-
-    #[test]
-    fn add_sub_mul() {
-        let x = Constant::new("x");
-        let y = Constant::new("y");
-        let pi = Constant::new("\\pi");
 
         let exp = (&x * &y) * (&y - &pi) - (&x - &pi);
         insta::assert_snapshot!(exp.math_print(), @"x * y * (y - π) - (x - π)");
@@ -97,5 +70,10 @@ mod tests {
         // when the negative sign is moved outwards during simplification steps.
         insta::assert_snapshot!(exp.math_print(), @"-π * x + y * -y * y - x * (π - x)");
         insta::assert_snapshot!(exp.latex(), @r###"-\pi x+y -y y-x \left(\pi-x\right)"###);
+
+        // Check that non-reference constants can be used
+        let exp = y * pi;
+        insta::assert_snapshot!(exp.math_print(), @"y * π");
+        insta::assert_snapshot!(exp.latex(), @r###"y \pi"###);
     }
 }

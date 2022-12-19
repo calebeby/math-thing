@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{expression::Expression, sum::Sum, Printable};
+use crate::{expression::Expression, Printable};
 
 struct ConstantInfo {
     name: String,
@@ -84,7 +84,6 @@ impl<T: Into<Expression>> std::ops::Mul<T> for &Constant {
         expr * rhs.into()
     }
 }
-
 impl<T: Into<Expression>> std::ops::Mul<T> for Constant {
     type Output = Expression;
 
