@@ -20,6 +20,15 @@
 .katex-display {
   margin: 0;
 }
+.katex .enclosing.hl {
+  background: #ffcb0094;
+  display: inline-block;
+  --padding-x: 0.05em;
+  --padding-y: 0em;
+  padding: var(--padding-y) var(--padding-x);
+  margin: calc(-1 * var(--padding-y)) calc(-1 * var(--padding-x));
+  border-radius: 0.3em;
+}
 
 .math-input {
   font-family: "Fira Mono", "Source Code Pro", monospace;

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     expression::{Expression, PRECEDENCE_SUM},
     Printable,
@@ -5,7 +7,7 @@ use crate::{
 
 #[derive(Clone)]
 pub(crate) struct Sum {
-    pub(crate) terms: Vec<Expression>,
+    pub(crate) terms: Vec<Rc<Expression>>,
 }
 
 impl Printable for Sum {
@@ -14,7 +16,7 @@ impl Printable for Sum {
             .iter()
             .enumerate()
             .map(|(i, term)| {
-                if let Expression::Negation(inner) = term {
+                if let Expression::Negation(inner) = term.as_ref() {
                     let inner_printed = if inner.precedence() <= PRECEDENCE_SUM {
                         inner.latex_with_parens()
                     } else {
@@ -43,7 +45,7 @@ impl Printable for Sum {
             .iter()
             .enumerate()
             .map(|(i, term)| {
-                if let Expression::Negation(inner) = term {
+                if let Expression::Negation(inner) = term.as_ref() {
                     let inner_printed = if inner.precedence() <= PRECEDENCE_SUM {
                         inner.math_print_with_parens()
                     } else {
@@ -78,18 +80,28 @@ impl<T: Into<Expression>> std::ops::Add<T> for Expression {
     fn add(self, rhs: T) -> Self::Output {
         Expression::Sum(Sum {
             terms: match (self, rhs.into()) {
-                (Expression::Sum(p1), Expression::Sum(p2)) => {
-                    p1.terms.into_iter().chain(p2.terms.into_iter()).collect()
+                (Expression::Sum(s1), Expression::Sum(s2)) => {
+                    s1.terms.into_iter().chain(s2.terms.into_iter()).collect()
                 }
-                (Expression::Sum(p1), exp2) => {
-                    p1.terms.into_iter().chain(std::iter::once(exp2)).collect()
-                }
-                (exp1, Expression::Sum(p2)) => {
-                    std::iter::once(exp1).chain(p2.terms.into_iter()).collect()
-                }
-                (exp1, exp2) => vec![exp1, exp2],
+                (Expression::Sum(s1), exp2) => s1
+                    .terms
+                    .into_iter()
+                    .chain(std::iter::once(Rc::new(exp2)))
+                    .collect(),
+                (exp1, Expression::Sum(s2)) => std::iter::once(Rc::new(exp1))
+                    .chain(s2.terms.into_iter())
+                    .collect(),
+                (exp1, exp2) => vec![Rc::new(exp1), Rc::new(exp2)],
             },
         })
+    }
+}
+impl<T: Into<Expression>> std::ops::Add<T> for &Expression {
+    type Output = Expression;
+
+    #[inline]
+    fn add(self, rhs: T) -> Self::Output {
+        self.clone() + rhs
     }
 }
 
@@ -98,16 +110,37 @@ impl<T: Into<Expression>> std::ops::Sub<T> for Expression {
 
     #[inline]
     fn sub(self, rhs: T) -> Self::Output {
-        let rhs_exp = -rhs.into();
+        let rhs_exp: Rc<Expression> = Rc::new(-rhs.into());
         Expression::Sum(Sum {
             terms: match self {
-                Expression::Sum(p1) => p1
+                Expression::Sum(s1) => s1
                     .terms
                     .into_iter()
                     .chain(std::iter::once(rhs_exp))
                     .collect(),
-                exp1 => vec![exp1, rhs_exp],
+                exp1 => vec![Rc::new(exp1), rhs_exp],
             },
         })
+    }
+}
+impl<T: Into<Expression>> std::ops::Sub<T> for &Expression {
+    type Output = Expression;
+
+    #[inline]
+    fn sub(self, rhs: T) -> Self::Output {
+        self.clone() - rhs
+    }
+}
+
+impl From<&Sum> for Expression {
+    #[inline]
+    fn from(sum: &Sum) -> Self {
+        Expression::Sum(sum.clone())
+    }
+}
+impl From<Sum> for Expression {
+    #[inline]
+    fn from(sum: Sum) -> Self {
+        Expression::Sum(sum)
     }
 }
