@@ -45,15 +45,18 @@ impl Expression {
                     })
                     .collect();
 
-                let product = Expression::Product(Rc::new(Product {
-                    terms: terms_simplified,
-                }));
+                let product = Expression::Product(
+                    Product {
+                        terms: terms_simplified,
+                    }
+                    .into(),
+                );
                 if num_negatives % 2 == 0 {
                     // Even negatives -> output is not negative
                     product
                 } else {
                     // Odd negatives -> output is negative
-                    Expression::Negation(Rc::new(Negation(product)))
+                    Expression::Negation(Negation(product).into())
                 }
             }
             _ => self.clone(),
@@ -84,15 +87,6 @@ impl Printable for Expression {
             Expression::Sum(sum) => sum.math_print(),
             Expression::Negation(neg) => neg.math_print(),
         }
-    }
-}
-
-impl std::ops::Neg for Expression {
-    type Output = Expression;
-
-    #[inline]
-    fn neg(self) -> Self::Output {
-        Expression::Negation(Rc::new(Negation(self)))
     }
 }
 
