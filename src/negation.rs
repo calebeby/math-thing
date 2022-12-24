@@ -1,13 +1,9 @@
 use crate::{
     expression::{Expression, PRECEDENCE_NEGATION},
-    format_with_annotations,
-    step::{Annotatable, Annotation},
-    MathPrintResult, Printable,
+    Printable,
 };
 
 pub(crate) struct Negation(pub(crate) Expression);
-
-impl Annotatable for Negation {}
 
 impl Printable for Negation {
     fn latex(&self) -> String {
@@ -21,13 +17,13 @@ impl Printable for Negation {
         )
     }
 
-    fn math_print_with_annotations(&self, annotations: &[Annotation]) -> MathPrintResult {
+    fn math_print(&self) -> String {
         let inner = if self.0.precedence() <= PRECEDENCE_NEGATION {
-            self.0.math_print_with_parens_and_annotations(annotations)
+            self.0.math_print_with_parens()
         } else {
-            self.0.math_print_with_annotations(annotations)
+            self.0.math_print()
         };
-        format_with_annotations!("-{}", inner)
+        format!("-{}", inner)
     }
 }
 

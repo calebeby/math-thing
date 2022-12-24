@@ -1,9 +1,6 @@
 use std::rc::Rc;
 
-use crate::{
-    constant::Constant, negation::Negation, product::Product, step::Annotation, sum::Sum,
-    MathPrintResult, Printable,
-};
+use crate::{constant::Constant, negation::Negation, product::Product, sum::Sum, Printable};
 
 pub(crate) const PRECEDENCE_SUM: usize = 1;
 pub(crate) const PRECEDENCE_NEGATION: usize = 2;
@@ -80,12 +77,12 @@ impl Printable for Expression {
         }
     }
 
-    fn math_print_with_annotations(&self, annotations: &[Annotation]) -> MathPrintResult {
+    fn math_print(&self) -> String {
         match self {
-            Expression::Constant(constant) => constant.math_print_with_annotations(annotations),
-            Expression::Product(product) => product.math_print_with_annotations(annotations),
-            Expression::Sum(sum) => sum.math_print_with_annotations(annotations),
-            Expression::Negation(neg) => neg.math_print_with_annotations(annotations),
+            Expression::Constant(constant) => constant.math_print(),
+            Expression::Product(product) => product.math_print(),
+            Expression::Sum(sum) => sum.math_print(),
+            Expression::Negation(neg) => neg.math_print(),
         }
     }
 }

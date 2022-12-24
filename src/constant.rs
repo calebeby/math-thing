@@ -1,10 +1,6 @@
 use std::rc::Rc;
 
-use crate::{
-    expression::Expression,
-    step::{Annotatable, Annotation},
-    MathPrintResult, Printable,
-};
+use crate::{expression::Expression, Printable};
 
 struct ConstantInfo {
     name: String,
@@ -14,8 +10,6 @@ struct ConstantInfo {
 pub(crate) struct Constant {
     info: Rc<ConstantInfo>,
 }
-
-impl Annotatable for Constant {}
 
 impl std::fmt::Debug for Constant {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -61,13 +55,10 @@ impl Printable for Constant {
         self.info.name.to_owned()
     }
     #[inline]
-    fn math_print_with_annotations(&self, _annotations: &[Annotation]) -> MathPrintResult {
-        MathPrintResult {
-            printed: latex_to_unicode(&self.info.name)
-                .unwrap_or(&self.info.name)
-                .to_owned(),
-            annotation_indexes: vec![],
-        }
+    fn math_print(&self) -> String {
+        latex_to_unicode(&self.info.name)
+            .unwrap_or(&self.info.name)
+            .to_owned()
     }
 }
 

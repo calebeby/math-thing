@@ -1,5 +1,3 @@
-use step::Annotation;
-
 mod constant;
 mod expression;
 mod negation;
@@ -66,22 +64,6 @@ pub(crate) struct MathPrintResult {
     annotation_indexes: Vec<(usize, usize)>,
 }
 
-impl MathPrintResult {
-    pub(crate) fn to_string_with_annotations(&self) -> String {
-        let mut annotations = vec![' '; self.printed.len()];
-        for &(start, end) in &self.annotation_indexes {
-            for i in start..end {
-                annotations[i] = '^';
-            }
-        }
-        format!(
-            "{}\n{}",
-            self.printed,
-            annotations.iter().collect::<String>()
-        )
-    }
-}
-
 impl FromIterator<MathPrintResult> for MathPrintResult {
     fn from_iter<T: IntoIterator<Item = MathPrintResult>>(t: T) -> Self {
         t.into_iter().fold(
@@ -103,47 +85,12 @@ impl FromIterator<MathPrintResult> for MathPrintResult {
     }
 }
 
-#[macro_export]
-macro_rules! format_with_annotations {
-    ($format_str:tt, $($arg:ident),*) => {{
-        use $crate::MathPrintResult;
-        let printed = format!($format_str, $($arg.printed),*);
-        let sub_annotations = [$(&$arg),*];
-        let mut s = $format_str;
-        let mut annotation_indexes = vec![];
-        let mut i = 0;
-        let mut last_annotation_index = 0;
-        while let Some(pattern_index) = s.find("{}") {
-            let offset = last_annotation_index + pattern_index;
-            annotation_indexes.extend(
-                sub_annotations[i]
-                    .annotation_indexes
-                    .iter()
-                    .map(|(start, end)| (start + offset, end + offset)),
-            );
-            last_annotation_index += sub_annotations[i].printed.len() + offset;
-            s = &s[(pattern_index + 2)..];
-            i += 1;
-        }
-        MathPrintResult {
-            printed,
-            annotation_indexes,
-        }
-    }}
-}
-
 trait Printable {
     fn latex(&self) -> String;
-    fn math_print_with_annotations(&self, annotations: &[Annotation]) -> MathPrintResult;
-    fn math_print_with_parens_and_annotations(
-        &self,
-        annotations: &[Annotation],
-    ) -> MathPrintResult {
-        let inner = self.math_print_with_annotations(annotations);
-        format_with_annotations!("({})", inner)
-    }
-    fn math_print(&self) -> String {
-        self.math_print_with_annotations(&[]).printed
+    fn math_print(&self) -> String;
+    fn math_print_with_parens(&self) -> String {
+        let inner = self.math_print();
+        format!("({})", inner)
     }
     fn latex_with_parens(&self) -> String {
         format!("\\left({}\\right)", self.latex())

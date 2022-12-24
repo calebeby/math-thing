@@ -1,16 +1,12 @@
 use crate::{
     expression::{Expression, PRECEDENCE_PRODUCT},
-    format_with_annotations,
-    step::{Annotatable, Annotation},
-    MathPrintResult, Printable,
+    Printable,
 };
 
 #[derive(Clone)]
 pub(crate) struct Product {
     pub(crate) terms: Vec<Expression>,
 }
-
-impl Annotatable for Product {}
 
 impl Printable for Product {
     fn latex(&self) -> String {
@@ -32,18 +28,18 @@ impl Printable for Product {
             .collect()
     }
 
-    fn math_print_with_annotations(&self, annotations: &[Annotation]) -> MathPrintResult {
+    fn math_print(&self) -> String {
         self.terms
             .iter()
             .enumerate()
             .map(|(i, term)| {
                 let inner = if term.precedence() <= PRECEDENCE_PRODUCT {
-                    term.math_print_with_parens_and_annotations(annotations)
+                    term.math_print_with_parens()
                 } else {
-                    term.math_print_with_annotations(annotations)
+                    term.math_print()
                 };
                 if i != 0 {
-                    format_with_annotations!(" * {}", inner)
+                    format!(" * {}", inner)
                 } else {
                     inner
                 }
