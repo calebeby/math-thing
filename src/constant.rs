@@ -1,6 +1,10 @@
 use std::rc::Rc;
 
-use crate::{expression::Expression, Printable};
+use crate::{
+    expression::Expression,
+    step::{Annotatable, Annotation},
+    MathPrintResult, Printable,
+};
 
 struct ConstantInfo {
     name: String,
@@ -10,6 +14,8 @@ struct ConstantInfo {
 pub(crate) struct Constant {
     info: Rc<ConstantInfo>,
 }
+
+impl Annotatable for Constant {}
 
 impl std::fmt::Debug for Constant {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -55,98 +61,18 @@ impl Printable for Constant {
         self.info.name.to_owned()
     }
     #[inline]
-    fn math_print(&self) -> String {
-        latex_to_unicode(&self.info.name)
-            .unwrap_or(&self.info.name)
-            .to_owned()
+    fn math_print_with_annotations(&self, _annotations: &[Annotation]) -> MathPrintResult {
+        MathPrintResult {
+            printed: latex_to_unicode(&self.info.name)
+                .unwrap_or(&self.info.name)
+                .to_owned(),
+            annotation_indexes: vec![],
+        }
     }
 }
 
 impl From<&Constant> for Expression {
-    #[inline]
     fn from(constant: &Constant) -> Self {
-        Expression::Constant(constant.clone())
-    }
-}
-impl From<Constant> for Expression {
-    #[inline]
-    fn from(constant: Constant) -> Self {
-        Expression::Constant(constant)
-    }
-}
-
-impl<T: Into<Expression>> std::ops::Mul<T> for &Constant {
-    type Output = Expression;
-
-    #[inline]
-    fn mul(self, rhs: T) -> Self::Output {
-        let expr: Expression = self.into();
-        expr * rhs.into()
-    }
-}
-impl<T: Into<Expression>> std::ops::Mul<T> for Constant {
-    type Output = Expression;
-
-    #[inline]
-    fn mul(self, rhs: T) -> Self::Output {
-        let expr: Expression = self.into();
-        expr * rhs.into()
-    }
-}
-
-impl<T: Into<Expression>> std::ops::Add<T> for &Constant {
-    type Output = Expression;
-
-    #[inline]
-    fn add(self, rhs: T) -> Self::Output {
-        let expr: Expression = self.into();
-        expr + rhs.into()
-    }
-}
-impl<T: Into<Expression>> std::ops::Add<T> for Constant {
-    type Output = Expression;
-
-    #[inline]
-    fn add(self, rhs: T) -> Self::Output {
-        let expr: Expression = self.into();
-        expr + rhs.into()
-    }
-}
-
-impl<T: Into<Expression>> std::ops::Sub<T> for &Constant {
-    type Output = Expression;
-
-    #[inline]
-    fn sub(self, rhs: T) -> Self::Output {
-        let expr: Expression = self.into();
-        expr - rhs.into()
-    }
-}
-impl<T: Into<Expression>> std::ops::Sub<T> for Constant {
-    type Output = Expression;
-
-    #[inline]
-    fn sub(self, rhs: T) -> Self::Output {
-        let expr: Expression = self.into();
-        expr - rhs.into()
-    }
-}
-
-impl std::ops::Neg for Constant {
-    type Output = Expression;
-
-    #[inline]
-    fn neg(self) -> Self::Output {
-        let expr: Expression = self.into();
-        -expr
-    }
-}
-impl std::ops::Neg for &Constant {
-    type Output = Expression;
-
-    #[inline]
-    fn neg(self) -> Self::Output {
-        let expr: Expression = self.into();
-        -expr
+        Expression::Constant(constant.clone().into())
     }
 }

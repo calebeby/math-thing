@@ -1,6 +1,9 @@
 use std::rc::Rc;
 
-use crate::{constant::Constant, product::Product, sum::Sum, Printable};
+use crate::{
+    constant::Constant, negation::Negation, product::Product, step::Annotation, sum::Sum,
+    MathPrintResult, Printable,
+};
 
 pub(crate) const PRECEDENCE_SUM: usize = 1;
 pub(crate) const PRECEDENCE_NEGATION: usize = 2;
@@ -9,10 +12,10 @@ pub(crate) const PRECEDENCE_CONSTANT: usize = 4;
 
 #[derive(Clone)]
 pub(crate) enum Expression {
-    Constant(Constant),
-    Product(Product),
-    Sum(Sum),
-    Negation(Rc<Expression>),
+    Constant(Rc<Constant>),
+    Product(Rc<Product>),
+    Sum(Rc<Sum>),
+    Negation(Rc<Negation>),
 }
 
 impl Expression {
@@ -38,23 +41,22 @@ impl Expression {
                         let simplified = t.simplify_parens_and_negatives();
                         if let Expression::Negation(inner) = simplified {
                             num_negatives += 1;
-                            inner.as_ref().clone()
+                            inner.0.clone()
                         } else {
                             simplified
                         }
-                        .into()
                     })
                     .collect();
 
-                let product = Expression::Product(Product {
+                let product = Expression::Product(Rc::new(Product {
                     terms: terms_simplified,
-                });
+                }));
                 if num_negatives % 2 == 0 {
                     // Even negatives -> output is not negative
                     product
                 } else {
                     // Odd negatives -> output is negative
-                    Expression::Negation(Rc::new(product))
+                    Expression::Negation(Rc::new(Negation(product)))
                 }
             }
             _ => self.clone(),
@@ -74,30 +76,16 @@ impl Printable for Expression {
             Expression::Constant(constant) => constant.latex(),
             Expression::Product(product) => product.latex(),
             Expression::Sum(sum) => sum.latex(),
-            Expression::Negation(exp) => format!(
-                "-{}",
-                if exp.precedence() <= PRECEDENCE_NEGATION {
-                    exp.latex_with_parens()
-                } else {
-                    exp.latex()
-                }
-            ),
+            Expression::Negation(neg) => neg.latex(),
         }
     }
 
-    fn math_print(&self) -> String {
+    fn math_print_with_annotations(&self, annotations: &[Annotation]) -> MathPrintResult {
         match self {
-            Expression::Constant(constant) => constant.math_print(),
-            Expression::Product(product) => product.math_print(),
-            Expression::Sum(sum) => sum.math_print(),
-            Expression::Negation(exp) => format!(
-                "-{}",
-                if exp.precedence() <= PRECEDENCE_NEGATION {
-                    exp.math_print_with_parens()
-                } else {
-                    exp.math_print()
-                }
-            ),
+            Expression::Constant(constant) => constant.math_print_with_annotations(annotations),
+            Expression::Product(product) => product.math_print_with_annotations(annotations),
+            Expression::Sum(sum) => sum.math_print_with_annotations(annotations),
+            Expression::Negation(neg) => neg.math_print_with_annotations(annotations),
         }
     }
 }
@@ -107,7 +95,7 @@ impl std::ops::Neg for Expression {
 
     #[inline]
     fn neg(self) -> Self::Output {
-        Expression::Negation(Rc::new(self))
+        Expression::Negation(Rc::new(Negation(self)))
     }
 }
 
