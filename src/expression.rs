@@ -1,11 +1,17 @@
 use std::rc::Rc;
 
-use crate::{constant::Constant, negation::Negation, product::Product, sum::Sum, Printable};
+use crate::{
+    constant::Constant, negation::Negation, product::Product, sum::Sum, token_stream::TokenStream,
+    PrintOpts, Printable,
+};
 
 pub(crate) const PRECEDENCE_SUM: usize = 1;
 pub(crate) const PRECEDENCE_NEGATION: usize = 2;
 pub(crate) const PRECEDENCE_PRODUCT: usize = 3;
 pub(crate) const PRECEDENCE_CONSTANT: usize = 4;
+const DEFAULT_PRINT_OPTS: PrintOpts = PrintOpts {
+    target: crate::PrintTarget::MathPrint,
+};
 
 #[derive(Clone)]
 pub(crate) enum Expression {
@@ -66,33 +72,30 @@ impl Expression {
 
 impl std::fmt::Debug for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.math_print())
+        write!(f, "{}", self.print(&DEFAULT_PRINT_OPTS))
     }
 }
 
 impl Printable for Expression {
-    fn latex(&self) -> String {
+    fn print<'a>(&'a self, print_opts: &'a PrintOpts) -> TokenStream {
         match self {
-            Expression::Constant(constant) => constant.latex(),
-            Expression::Product(product) => product.latex(),
-            Expression::Sum(sum) => sum.latex(),
-            Expression::Negation(neg) => neg.latex(),
-        }
-    }
-
-    fn math_print(&self) -> String {
-        match self {
-            Expression::Constant(constant) => constant.math_print(),
-            Expression::Product(product) => product.math_print(),
-            Expression::Sum(sum) => sum.math_print(),
-            Expression::Negation(neg) => neg.math_print(),
+            Expression::Constant(constant) => constant.print(print_opts),
+            Expression::Product(product) => product.print(print_opts),
+            Expression::Sum(sum) => sum.print(print_opts),
+            Expression::Negation(neg) => neg.print(print_opts),
         }
     }
 }
 
-impl From<&Expression> for Expression {
-    #[inline]
-    fn from(expression: &Expression) -> Self {
-        expression.clone()
+pub(crate) trait AsExpression {
+    fn expr(self) -> Expression;
+}
+
+impl<T> AsExpression for T
+where
+    T: Into<Expression>,
+{
+    fn expr(self) -> Expression {
+        self.into()
     }
 }

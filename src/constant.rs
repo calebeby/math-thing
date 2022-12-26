@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
-use crate::{expression::Expression, Printable};
+use crate::{
+    expression::Expression, token_stream::TokenStream, tokens, PrintOpts, PrintTarget, Printable,
+};
 
 struct ConstantInfo {
     name: String,
@@ -9,12 +11,6 @@ struct ConstantInfo {
 #[derive(Clone)]
 pub(crate) struct Constant {
     info: Rc<ConstantInfo>,
-}
-
-impl std::fmt::Debug for Constant {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Constant {}", self.math_print())
-    }
 }
 
 fn latex_to_unicode(latex: &str) -> Option<&'static str> {
@@ -51,14 +47,17 @@ impl Constant {
 
 impl Printable for Constant {
     #[inline]
-    fn latex(&self) -> String {
-        self.info.name.to_owned()
-    }
-    #[inline]
-    fn math_print(&self) -> String {
-        latex_to_unicode(&self.info.name)
-            .unwrap_or(&self.info.name)
-            .to_owned()
+    fn print(&self, print_opts: &PrintOpts) -> TokenStream {
+        tokens!(std::iter::once(
+            if matches!(print_opts.target, PrintTarget::LaTex) {
+                self.info.name.to_owned()
+            } else {
+                latex_to_unicode(&self.info.name)
+                    .unwrap_or(&self.info.name)
+                    .to_owned()
+            }
+            .into()
+        ))
     }
 }
 
