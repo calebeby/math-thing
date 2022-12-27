@@ -46,6 +46,7 @@ impl Printable for Sum {
     }
 }
 impl From<Sum> for Expression {
+    #[inline]
     fn from(sum: Sum) -> Self {
         Expression::Sum(sum.into())
     }

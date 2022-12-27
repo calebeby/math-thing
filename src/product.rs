@@ -33,6 +33,7 @@ impl Printable for Product {
 }
 
 impl From<Product> for Expression {
+    #[inline]
     fn from(product: Product) -> Self {
         Expression::Product(product.into())
     }

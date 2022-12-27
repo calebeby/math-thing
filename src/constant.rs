@@ -62,6 +62,7 @@ impl Printable for Constant {
 }
 
 impl From<&Constant> for Expression {
+    #[inline]
     fn from(constant: &Constant) -> Self {
         Expression::Constant(constant.clone().into())
     }

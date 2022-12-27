@@ -18,6 +18,7 @@ impl Printable for Negation {
 }
 
 impl From<Negation> for Expression {
+    #[inline]
     fn from(neg: Negation) -> Self {
         Expression::Negation(neg.into())
     }

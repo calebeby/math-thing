@@ -95,6 +95,7 @@ impl<T> AsExpression for T
 where
     T: Into<Expression>,
 {
+    #[inline]
     fn expr(self) -> Expression {
         self.into()
     }

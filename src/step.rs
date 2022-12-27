@@ -8,15 +8,3 @@ pub(crate) struct Step {
     substeps: Vec<Step>,
     result: Rc<Expression>,
 }
-
-#[cfg(test)]
-mod tests {
-    // use insta::assert_snapshot;
-
-    // use crate::{constant::Constant, sum::Sum};
-
-    // use super::*;
-
-    #[test]
-    fn printing_annotated_expressions() {}
-}
