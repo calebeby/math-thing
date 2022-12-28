@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     constant::Constant, negation::Negation, product::Product, sum::Sum, token_stream::TokenStream,
-    PrintOpts, Printable,
+    traversable::Traversable, PrintOpts, Printable,
 };
 
 pub(crate) const PRECEDENCE_SUM: usize = 1;
@@ -34,45 +34,70 @@ impl Expression {
     /// and simplifies/cancels multiple negatives in products,
     /// and distributes negatives.
     pub(crate) fn simplify_parens_and_negatives(&self) -> Expression {
-        match self {
-            Expression::Product(product) => {
-                let mut num_negatives = 0;
-                let terms_simplified = product
-                    .terms
-                    .iter()
-                    .map(|t| {
-                        let simplified = t.simplify_parens_and_negatives();
-                        if let Expression::Negation(inner) = simplified {
-                            num_negatives += 1;
-                            inner.0.clone()
-                        } else {
-                            simplified
-                        }
-                    })
-                    .collect();
+        self.clone()
+        // let mut stack = vec![self];
+        // while let Some(stack_item) = stack.pop() {
+        //     match stack_item {
+        //         Expression::Constant(..) => {}
+        //         Expression::Product(_) => todo!(),
+        //         Expression::Sum(_) => todo!(),
+        //         Expression::Negation(_) => todo!(),
+        //     }
+        // }
+    }
+}
 
-                let product = Expression::Product(
-                    Product {
-                        terms: terms_simplified,
-                    }
-                    .into(),
-                );
-                if num_negatives % 2 == 0 {
-                    // Even negatives -> output is not negative
-                    product
-                } else {
-                    // Odd negatives -> output is negative
-                    Expression::Negation(Negation(product).into())
-                }
-            }
-            _ => self.clone(),
-        }
+impl std::fmt::Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.print(&DEFAULT_PRINT_OPTS))
     }
 }
 
 impl std::fmt::Debug for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.print(&DEFAULT_PRINT_OPTS))
+        match self {
+            Expression::Constant(constant) => {
+                write!(f, "Expression::Constant({})", constant.expr())
+            }
+            Expression::Product(product) => {
+                write!(
+                    f,
+                    "Expression::Product {{\n  {}\n}}",
+                    product
+                        .terms
+                        .iter()
+                        .enumerate()
+                        .map(|(i, term)| {
+                            if i == 0 {
+                                format!("{}", term)
+                            } else {
+                                format!(",\n  {}", term)
+                            }
+                        })
+                        .collect::<String>()
+                )
+            }
+            Expression::Sum(sum) => {
+                write!(
+                    f,
+                    "Expression::Sum {{\n  {}\n}}",
+                    sum.terms
+                        .iter()
+                        .enumerate()
+                        .map(|(i, term)| {
+                            if i == 0 {
+                                format!("{}", term)
+                            } else {
+                                format!(",\n  {}", term)
+                            }
+                        })
+                        .collect::<String>()
+                )
+            }
+            Expression::Negation(negation) => {
+                write!(f, "Expression::Negation {{\n  {}\n}}", negation.0)
+            }
+        }
     }
 }
 
@@ -83,6 +108,26 @@ impl Printable for Expression {
             Expression::Product(product) => product.print(print_opts),
             Expression::Sum(sum) => sum.print(print_opts),
             Expression::Negation(neg) => neg.print(print_opts),
+        }
+    }
+}
+
+impl Traversable for Expression {
+    fn child_iter<'a>(&'a self) -> Box<(dyn Iterator<Item = &'a Expression> + 'a)> {
+        match self {
+            Expression::Constant(constant) => constant.child_iter(),
+            Expression::Product(product) => product.child_iter(),
+            Expression::Sum(sum) => sum.child_iter(),
+            Expression::Negation(neg) => neg.child_iter(),
+        }
+    }
+
+    fn from_children(original: &Self, children: Vec<Expression>) -> Expression {
+        match original {
+            Expression::Constant(original) => (&Constant::from_children(original, children)).into(),
+            Expression::Product(original) => Product::from_children(original, children).into(),
+            Expression::Sum(original) => Sum::from_children(original, children).into(),
+            Expression::Negation(original) => Negation::from_children(original, children).into(),
         }
     }
 }

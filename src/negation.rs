@@ -1,9 +1,12 @@
 use crate::{
     expression::{Expression, PRECEDENCE_NEGATION},
     token_stream::TokenStream,
-    tokens, PrintOpts, Printable,
+    tokens,
+    traversable::Traversable,
+    PrintOpts, Printable,
 };
 
+#[derive(Clone)]
 pub(crate) struct Negation(pub(crate) Expression);
 
 impl Printable for Negation {
@@ -21,5 +24,18 @@ impl From<Negation> for Expression {
     #[inline]
     fn from(neg: Negation) -> Self {
         Expression::Negation(neg.into())
+    }
+}
+
+impl Traversable for Negation {
+    fn child_iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a Expression> + 'a> {
+        Box::new(std::iter::once(&self.0))
+    }
+
+    fn from_children(_original: &Negation, children: Vec<Expression>) -> Negation {
+        if children.len() != 1 {
+            unreachable!()
+        }
+        Negation(children.into_iter().next().unwrap())
     }
 }

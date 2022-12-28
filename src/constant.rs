@@ -1,16 +1,17 @@
 use std::rc::Rc;
 
 use crate::{
-    expression::Expression, token_stream::TokenStream, tokens, PrintOpts, PrintTarget, Printable,
+    expression::Expression, token_stream::TokenStream, tokens, traversable::Traversable, PrintOpts,
+    PrintTarget, Printable,
 };
 
-struct ConstantInfo {
-    name: String,
+pub(crate) struct ConstantInfo {
+    pub(crate) name: String,
 }
 
 #[derive(Clone)]
 pub(crate) struct Constant {
-    info: Rc<ConstantInfo>,
+    pub(crate) info: Rc<ConstantInfo>,
 }
 
 fn latex_to_unicode(latex: &str) -> Option<&'static str> {
@@ -58,6 +59,19 @@ impl Printable for Constant {
             }
             .into()
         ))
+    }
+}
+
+impl Traversable for Constant {
+    fn child_iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a Expression> + 'a> {
+        Box::new(std::iter::empty())
+    }
+
+    fn from_children(original: &Constant, children: Vec<Expression>) -> Constant {
+        if children.len() != 0 {
+            unreachable!()
+        }
+        original.clone()
     }
 }
 

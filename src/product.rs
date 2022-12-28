@@ -1,7 +1,9 @@
 use crate::{
     expression::{Expression, PRECEDENCE_PRODUCT},
     token_stream::TokenStream,
-    tokens, PrintOpts, PrintTarget, Printable,
+    tokens,
+    traversable::Traversable,
+    PrintOpts, PrintTarget, Printable,
 };
 
 #[derive(Clone)]
@@ -29,6 +31,16 @@ impl Printable for Product {
                 }
             },
         )))
+    }
+}
+
+impl Traversable for Product {
+    fn child_iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a Expression> + 'a> {
+        Box::new(self.terms.iter())
+    }
+
+    fn from_children(_original: &Product, children: Vec<Expression>) -> Product {
+        Product { terms: children }
     }
 }
 

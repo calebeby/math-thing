@@ -2,7 +2,9 @@ use crate::{
     expression::{Expression, PRECEDENCE_SUM},
     negation::Negation,
     token_stream::TokenStream,
-    tokens, PrintOpts, PrintTarget, Printable,
+    tokens,
+    traversable::Traversable,
+    PrintOpts, PrintTarget, Printable,
 };
 
 #[derive(Clone)]
@@ -45,6 +47,17 @@ impl Printable for Sum {
         )))
     }
 }
+
+impl Traversable for Sum {
+    fn child_iter<'a>(&'a self) -> Box<(dyn Iterator<Item = &'a Expression> + 'a)> {
+        Box::new(self.terms.iter())
+    }
+
+    fn from_children(_original: &Sum, children: Vec<Expression>) -> Sum {
+        Sum { terms: children }
+    }
+}
+
 impl From<Sum> for Expression {
     #[inline]
     fn from(sum: Sum) -> Self {
