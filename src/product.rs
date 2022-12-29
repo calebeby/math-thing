@@ -1,6 +1,11 @@
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+};
+
 use crate::{
     annotated_expression::Annotation,
-    expression::{Expression, PRECEDENCE_PRODUCT},
+    expression::{Expression, ExpressionId, PRECEDENCE_PRODUCT},
     token_stream::TokenStream,
     tokens,
     traversable::Traversable,
@@ -10,16 +15,32 @@ use crate::{
 #[derive(Clone)]
 pub(crate) struct Product {
     terms: Vec<Expression>,
+    id: ExpressionId,
 }
 
 impl Product {
     #[inline]
     pub fn new(terms: Vec<Expression>) -> Self {
-        Self { terms }
+        let mut hasher = DefaultHasher::new();
+        terms.hash(&mut hasher);
+        Self {
+            terms,
+            id: hasher.finish(),
+        }
     }
     #[inline]
     pub fn terms(&self) -> &[Expression] {
         &self.terms
+    }
+    #[inline]
+    pub(crate) fn id(&self) -> ExpressionId {
+        self.id
+    }
+}
+
+impl Hash for Product {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state)
     }
 }
 
@@ -52,7 +73,7 @@ impl Traversable for Product {
     }
 
     fn from_children(_original: &Product, children: Vec<Expression>) -> Product {
-        Product { terms: children }
+        Product::new(children)
     }
 }
 

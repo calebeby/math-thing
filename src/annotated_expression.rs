@@ -1,4 +1,8 @@
-use crate::{expression::Expression, token_stream::TokenStream, PrintOpts, Printable};
+use crate::{
+    expression::{Expression, ExpressionId},
+    token_stream::TokenStream,
+    PrintOpts, Printable,
+};
 
 pub(crate) struct AnnotatedExpression {
     expression: Expression,
@@ -6,7 +10,7 @@ pub(crate) struct AnnotatedExpression {
 }
 
 pub(crate) struct Annotation {
-    pub(crate) target_id: usize,
+    pub(crate) target_id: ExpressionId,
 }
 
 impl Annotation {

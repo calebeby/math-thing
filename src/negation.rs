@@ -1,6 +1,11 @@
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+};
+
 use crate::{
     annotated_expression::Annotation,
-    expression::{Expression, PRECEDENCE_NEGATION},
+    expression::{Expression, ExpressionId, PRECEDENCE_NEGATION},
     token_stream::TokenStream,
     tokens,
     traversable::Traversable,
@@ -8,25 +13,43 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub(crate) struct Negation(Expression);
+pub(crate) struct Negation {
+    inner: Expression,
+    id: ExpressionId,
+}
 
 impl Negation {
     #[inline]
     pub fn new(inner: Expression) -> Self {
-        Self(inner)
+        let mut hasher = DefaultHasher::new();
+        inner.hash(&mut hasher);
+        Self {
+            inner,
+            id: hasher.finish(),
+        }
     }
     #[inline]
     pub fn inner(&self) -> &Expression {
-        &self.0
+        &self.inner
+    }
+    #[inline]
+    pub(crate) fn id(&self) -> ExpressionId {
+        self.id
+    }
+}
+
+impl Hash for Negation {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state)
     }
 }
 
 impl Printable for Negation {
     fn print<'a>(&'a self, print_opts: &'a PrintOpts, annotations: &[Annotation]) -> TokenStream {
-        let inner = if self.0.precedence() <= PRECEDENCE_NEGATION {
-            self.0.print_with_parens(print_opts, annotations)
+        let inner = if self.inner.precedence() <= PRECEDENCE_NEGATION {
+            self.inner.print_with_parens(print_opts, annotations)
         } else {
-            self.0.print(print_opts, annotations)
+            self.inner.print(print_opts, annotations)
         };
         tokens!("-", inner)
     }
@@ -41,13 +64,13 @@ impl From<Negation> for Expression {
 
 impl Traversable for Negation {
     fn child_iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a Expression> + 'a> {
-        Box::new(std::iter::once(&self.0))
+        Box::new(std::iter::once(&self.inner))
     }
 
     fn from_children(_original: &Negation, children: Vec<Expression>) -> Negation {
         if children.len() != 1 {
             unreachable!()
         }
-        Negation(children.into_iter().next().unwrap())
+        Negation::new(children.into_iter().next().unwrap())
     }
 }

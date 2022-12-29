@@ -13,7 +13,9 @@ const DEFAULT_PRINT_OPTS: PrintOpts = PrintOpts {
     target: crate::PrintTarget::MathPrint,
 };
 
-#[derive(Clone)]
+pub(crate) type ExpressionId = u64;
+
+#[derive(Clone, Hash)]
 pub(crate) enum Expression {
     Constant(Rc<Constant>),
     Product(Rc<Product>),
@@ -30,29 +32,13 @@ impl Expression {
             Expression::Constant(..) => PRECEDENCE_CONSTANT,
         }
     }
-    pub(crate) fn id(&self) -> usize {
+    pub(crate) fn id(&self) -> ExpressionId {
         match self {
-            _ => 25, // TODO
-                     // Expression::Sum(inner) => inner.id,
-                     // Expression::Product(inner) => inner.id,
-                     // Expression::Negation(inner) => inner.id,
-                     // Expression::Constant(inner) => inner.id,
+            Expression::Sum(inner) => inner.id(),
+            Expression::Product(inner) => inner.id(),
+            Expression::Negation(inner) => inner.id(),
+            Expression::Constant(inner) => inner.id(),
         }
-    }
-    /// Removes unneeded parentheses,
-    /// and simplifies/cancels multiple negatives in products,
-    /// and distributes negatives.
-    pub(crate) fn simplify_parens_and_negatives(&self) -> Expression {
-        self.clone()
-        // let mut stack = vec![self];
-        // while let Some(stack_item) = stack.pop() {
-        //     match stack_item {
-        //         Expression::Constant(..) => {}
-        //         Expression::Product(_) => todo!(),
-        //         Expression::Sum(_) => todo!(),
-        //         Expression::Negation(_) => todo!(),
-        //     }
-        // }
     }
 }
 
