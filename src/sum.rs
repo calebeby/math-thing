@@ -1,6 +1,6 @@
 use crate::{
+    annotated_expression::Annotation,
     expression::{Expression, PRECEDENCE_SUM},
-    negation::Negation,
     token_stream::TokenStream,
     tokens,
     traversable::Traversable,
@@ -9,20 +9,31 @@ use crate::{
 
 #[derive(Clone)]
 pub(crate) struct Sum {
-    pub(crate) terms: Vec<Expression>,
+    terms: Vec<Expression>,
+}
+
+impl Sum {
+    #[inline]
+    pub fn new(terms: Vec<Expression>) -> Self {
+        Self { terms }
+    }
+    #[inline]
+    pub fn terms(&self) -> &[Expression] {
+        &self.terms
+    }
 }
 
 impl Printable for Sum {
-    fn print<'a>(&'a self, print_opts: &'a PrintOpts) -> TokenStream {
+    fn print<'a>(&'a self, print_opts: &'a PrintOpts, annotations: &[Annotation]) -> TokenStream {
         let is_latex = matches!(print_opts.target, PrintTarget::LaTex);
         TokenStream::from_iter(Box::new(self.terms.iter().enumerate().flat_map(
             |(i, term)| {
                 if let Expression::Negation(neg) = term {
-                    let Negation(inner) = neg.as_ref();
+                    let inner = neg.inner();
                     let inner_printed = if inner.precedence() <= PRECEDENCE_SUM {
-                        inner.print_with_parens(print_opts)
+                        inner.print_with_parens(print_opts, annotations)
                     } else {
-                        inner.print(print_opts)
+                        inner.print(print_opts, annotations)
                     };
                     if i == 0 || is_latex {
                         tokens!["-", inner_printed]
@@ -31,9 +42,9 @@ impl Printable for Sum {
                     }
                 } else {
                     let inner_printed = if term.precedence() <= PRECEDENCE_SUM {
-                        term.print_with_parens(print_opts)
+                        term.print_with_parens(print_opts, annotations)
                     } else {
-                        term.print(print_opts)
+                        term.print(print_opts, annotations)
                     };
                     if i == 0 {
                         inner_printed

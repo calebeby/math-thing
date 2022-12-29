@@ -108,7 +108,7 @@ where
                             )
                         }
                     }
-                    println!("Step snapshot: {}", snapshot(&queue[0], &queue));
+                    // println!("Step snapshot: {}", snapshot(&queue[0], &queue));
                 }
                 let item = &mut queue[i];
                 item.expr = Cow::Owned(replacement);
@@ -142,7 +142,7 @@ where
     assert!(!item.invalidated_children);
     let exp = item.expr.into_owned();
 
-    println!("Answer: {exp}");
+    // println!("Answer: {exp}");
     exp
 }
 
@@ -150,39 +150,39 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
     traverse(expr, |node| match node {
         Expression::Product(prod) => {
             if prod
-                .terms
+                .terms()
                 .iter()
                 .any(|term| matches!(term, Expression::Product(..)))
             {
                 let mut terms = vec![];
-                for t in &prod.terms {
+                for t in prod.terms() {
                     match t {
                         Expression::Product(pr) => {
-                            terms.extend(pr.terms.iter().cloned());
+                            terms.extend(pr.terms().iter().cloned());
                         }
                         _ => terms.push(t.clone()),
                     };
                 }
-                return TraverseResult::Replace(Product { terms }.expr());
+                return TraverseResult::Replace(Product::new(terms).expr());
             }
             TraverseResult::LeaveAlone
         }
         Expression::Sum(prod) => {
             if prod
-                .terms
+                .terms()
                 .iter()
                 .any(|term| matches!(term, Expression::Sum(..)))
             {
                 let mut terms = vec![];
-                for t in &prod.terms {
+                for t in prod.terms() {
                     match t {
                         Expression::Sum(pr) => {
-                            terms.extend(pr.terms.iter().cloned());
+                            terms.extend(pr.terms().iter().cloned());
                         }
                         _ => terms.push(t.clone()),
                     };
                 }
-                return TraverseResult::Replace(Sum { terms }.expr());
+                return TraverseResult::Replace(Sum::new(terms).expr());
             }
             TraverseResult::LeaveAlone
         }
@@ -209,10 +209,7 @@ mod tests {
         insta::assert_display_snapshot!(exp, @"x * (y * z)");
         insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
 
-        let exp = Product {
-            terms: vec![math![(x * y) * z].expr()],
-        }
-        .expr();
+        let exp = Product::new(vec![math![(x * y) * z].expr()]).expr();
         insta::assert_display_snapshot!(exp, @"((x * y) * z)");
         insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
 

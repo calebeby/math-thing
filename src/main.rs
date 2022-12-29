@@ -1,3 +1,4 @@
+use annotated_expression::Annotation;
 use token_stream::TokenStream;
 
 mod annotated_expression;
@@ -16,18 +17,19 @@ fn main() {}
 #[macro_export]
 macro_rules! math {
     ($a:ident) => {&$a};
+    ({$a:ident}) => {$a};
     ($a:literal) => {$a};
     ((-$a:ident)) => {{
         use $crate::negation::Negation;
-        Negation(math!($a).into())
+        Negation::new(math!($a).into())
     }};
     ((-$a:literal)) => {{
         use $crate::negation::Negation;
-        Negation(math!($a).into())
+        Negation::new(math!($a).into())
     }};
     ((-($($a:tt)*))) => {{
         use $crate::negation::Negation;
-        Negation(math!($($a)*).into())
+        Negation::new(math!($($a)*).into())
     }};
     // Remove extra parentheses
     (($($a:tt)*)) => {
@@ -36,24 +38,18 @@ macro_rules! math {
     // Expand a+b+c+d...
     ($a:tt $(+ $b:tt)+) => {{
         use $crate::sum::Sum;
-        Sum {
-            terms: vec![math!($a).into(), $(math!($b).into()),*]
-        }
+        Sum::new(vec![math!($a).into(), $(math!($b).into()),*])
     }};
     // Expand a-b
     ($a:tt - $b:tt) => {{
         use $crate::sum::Sum;
         use $crate::negation::Negation;
-        Sum {
-            terms: vec![math!($a).into(), Negation(math!($b).into()).into()]
-        }
+        Sum::new(vec![math!($a).into(), Negation::new(math!($b).into()).into()])
     }};
     // Expand a*b*c*d...
     ($a:tt $(* $b:tt)+) => {{
         use $crate::product::Product;
-        Product {
-            terms: vec![math!($a).into(), $(math!($b).into()),*]
-        }
+        Product::new(vec![math!($a).into(), $(math!($b).into()),*])
     }};
     // // Expand a/b
     // ($a:tt / $b:tt) => {
@@ -75,14 +71,24 @@ pub(crate) struct PrintOpts {
 }
 
 trait Printable {
-    fn latex(&self) -> String {
-        token_stream::print(&self.print(&PrintOpts {
-            target: PrintTarget::LaTex,
-        }))
+    fn latex_with_annotations(&self, annotations: &[Annotation]) -> String {
+        token_stream::print(&self.print(
+            &PrintOpts {
+                target: PrintTarget::LaTex,
+            },
+            annotations,
+        ))
     }
-    fn print<'a>(&'a self, print_opts: &'a PrintOpts) -> TokenStream;
-    fn print_with_parens<'a>(&'a self, print_opts: &'a PrintOpts) -> TokenStream {
-        let inner = self.print(print_opts);
+    fn latex(&self) -> String {
+        self.latex_with_annotations(&[])
+    }
+    fn print<'a>(&'a self, print_opts: &'a PrintOpts, annotations: &[Annotation]) -> TokenStream;
+    fn print_with_parens<'a>(
+        &'a self,
+        print_opts: &'a PrintOpts,
+        annotations: &[Annotation],
+    ) -> TokenStream {
+        let inner = self.print(print_opts, annotations);
         if matches!(print_opts.target, PrintTarget::LaTex) {
             tokens!["\\left(", inner, "\\right)"]
         } else {

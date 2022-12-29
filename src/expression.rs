@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use crate::{
-    constant::Constant, negation::Negation, product::Product, sum::Sum, token_stream::TokenStream,
-    traversable::Traversable, PrintOpts, Printable,
+    annotated_expression::Annotation, constant::Constant, negation::Negation, product::Product,
+    sum::Sum, token_stream::TokenStream, traversable::Traversable, PrintOpts, Printable,
 };
 
 pub(crate) const PRECEDENCE_SUM: usize = 1;
@@ -30,6 +30,15 @@ impl Expression {
             Expression::Constant(..) => PRECEDENCE_CONSTANT,
         }
     }
+    pub(crate) fn id(&self) -> usize {
+        match self {
+            _ => 25, // TODO
+                     // Expression::Sum(inner) => inner.id,
+                     // Expression::Product(inner) => inner.id,
+                     // Expression::Negation(inner) => inner.id,
+                     // Expression::Constant(inner) => inner.id,
+        }
+    }
     /// Removes unneeded parentheses,
     /// and simplifies/cancels multiple negatives in products,
     /// and distributes negatives.
@@ -49,7 +58,7 @@ impl Expression {
 
 impl std::fmt::Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.print(&DEFAULT_PRINT_OPTS))
+        write!(f, "{}", self.print(&DEFAULT_PRINT_OPTS, &[]))
     }
 }
 
@@ -64,7 +73,7 @@ impl std::fmt::Debug for Expression {
                     f,
                     "Expression::Product {{\n  {}\n}}",
                     product
-                        .terms
+                        .terms()
                         .iter()
                         .enumerate()
                         .map(|(i, term)| {
@@ -81,7 +90,7 @@ impl std::fmt::Debug for Expression {
                 write!(
                     f,
                     "Expression::Sum {{\n  {}\n}}",
-                    sum.terms
+                    sum.terms()
                         .iter()
                         .enumerate()
                         .map(|(i, term)| {
@@ -95,19 +104,19 @@ impl std::fmt::Debug for Expression {
                 )
             }
             Expression::Negation(negation) => {
-                write!(f, "Expression::Negation {{\n  {}\n}}", negation.0)
+                write!(f, "Expression::Negation {{\n  {}\n}}", negation.inner())
             }
         }
     }
 }
 
 impl Printable for Expression {
-    fn print<'a>(&'a self, print_opts: &'a PrintOpts) -> TokenStream {
+    fn print<'a>(&'a self, print_opts: &'a PrintOpts, annotations: &[Annotation]) -> TokenStream {
         match self {
-            Expression::Constant(constant) => constant.print(print_opts),
-            Expression::Product(product) => product.print(print_opts),
-            Expression::Sum(sum) => sum.print(print_opts),
-            Expression::Negation(neg) => neg.print(print_opts),
+            Expression::Constant(constant) => constant.print(print_opts, annotations),
+            Expression::Product(product) => product.print(print_opts, annotations),
+            Expression::Sum(sum) => sum.print(print_opts, annotations),
+            Expression::Negation(neg) => neg.print(print_opts, annotations),
         }
     }
 }

@@ -74,6 +74,7 @@ macro_rules! token_iter {
     }};
 }
 
+// TODO: most of these don't need to use iterators
 #[macro_export]
 macro_rules! tokens {
     ($exp:literal) => {{

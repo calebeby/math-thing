@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use crate::{
-    expression::Expression, token_stream::TokenStream, tokens, traversable::Traversable, PrintOpts,
-    PrintTarget, Printable,
+    annotated_expression::Annotation, expression::Expression, token_stream::TokenStream, tokens,
+    traversable::Traversable, PrintOpts, PrintTarget, Printable,
 };
 
 pub(crate) struct ConstantInfo {
@@ -11,7 +11,7 @@ pub(crate) struct ConstantInfo {
 
 #[derive(Clone)]
 pub(crate) struct Constant {
-    pub(crate) info: Rc<ConstantInfo>,
+    info: Rc<ConstantInfo>,
 }
 
 fn latex_to_unicode(latex: &str) -> Option<&'static str> {
@@ -31,7 +31,7 @@ fn unicode_to_latex(unicode: &str) -> &str {
 }
 
 impl Constant {
-    pub(crate) fn new(name: &str) -> Self {
+    pub fn new(name: &str) -> Self {
         if name.starts_with('\\') {
             // Assume latex character, look up
             if latex_to_unicode(name).is_none() {
@@ -48,7 +48,7 @@ impl Constant {
 
 impl Printable for Constant {
     #[inline]
-    fn print(&self, print_opts: &PrintOpts) -> TokenStream {
+    fn print(&self, print_opts: &PrintOpts, _annotations: &[Annotation]) -> TokenStream {
         tokens!(std::iter::once(
             if matches!(print_opts.target, PrintTarget::LaTex) {
                 self.info.name.to_owned()

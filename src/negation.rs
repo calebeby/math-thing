@@ -1,4 +1,5 @@
 use crate::{
+    annotated_expression::Annotation,
     expression::{Expression, PRECEDENCE_NEGATION},
     token_stream::TokenStream,
     tokens,
@@ -7,14 +8,25 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub(crate) struct Negation(pub(crate) Expression);
+pub(crate) struct Negation(Expression);
+
+impl Negation {
+    #[inline]
+    pub fn new(inner: Expression) -> Self {
+        Self(inner)
+    }
+    #[inline]
+    pub fn inner(&self) -> &Expression {
+        &self.0
+    }
+}
 
 impl Printable for Negation {
-    fn print<'a>(&'a self, print_opts: &'a PrintOpts) -> TokenStream {
+    fn print<'a>(&'a self, print_opts: &'a PrintOpts, annotations: &[Annotation]) -> TokenStream {
         let inner = if self.0.precedence() <= PRECEDENCE_NEGATION {
-            self.0.print_with_parens(print_opts)
+            self.0.print_with_parens(print_opts, annotations)
         } else {
-            self.0.print(print_opts)
+            self.0.print(print_opts, annotations)
         };
         tokens!("-", inner)
     }
