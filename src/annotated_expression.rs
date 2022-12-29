@@ -5,8 +5,8 @@ use crate::{
 };
 
 pub(crate) struct AnnotatedExpression {
-    expression: Expression,
-    annotations: Vec<Annotation>,
+    pub(crate) expression: Expression,
+    pub(crate) annotations: Vec<Annotation>,
 }
 
 pub(crate) struct Annotation {
