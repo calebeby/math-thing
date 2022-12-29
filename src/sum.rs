@@ -40,6 +40,7 @@ impl Sum {
 }
 
 impl Hash for Sum {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state)
     }

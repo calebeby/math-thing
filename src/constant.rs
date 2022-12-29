@@ -65,6 +65,7 @@ impl Constant {
 }
 
 impl Hash for Constant {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state)
     }

@@ -39,6 +39,7 @@ impl Product {
 }
 
 impl Hash for Product {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state)
     }

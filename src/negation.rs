@@ -39,6 +39,7 @@ impl Negation {
 }
 
 impl Hash for Negation {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state)
     }
