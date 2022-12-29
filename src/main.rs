@@ -19,38 +19,34 @@ macro_rules! math {
     ($a:ident) => {&$a};
     ($a:literal) => {$a};
     ({$a:expr}) => {$a};
-    ((-$a:ident)) => {{
-        use $crate::negation::Negation;
-        Negation::new(math!($a).into())
-    }};
-    ((-$a:literal)) => {{
-        use $crate::negation::Negation;
-        Negation::new(math!($a).into())
-    }};
-    ((-($($a:tt)*))) => {{
-        use $crate::negation::Negation;
-        Negation::new(math!($($a)*).into())
-    }};
+    ((-$a:ident)) => {
+        $crate::negation::Negation::new(math!($a).into())
+    };
+    ((-$a:literal)) => {
+        $crate::negation::Negation::new(math!($a).into())
+    };
+    ((-($($a:tt)*))) => {
+        $crate::negation::Negation::new(math!($($a)*).into())
+    };
     // Remove extra parentheses
     (($($a:tt)*)) => {
         math!($($a)*)
     };
     // Expand a+b+c+d...
-    ($a:tt $(+ $b:tt)+) => {{
-        use $crate::sum::Sum;
-        Sum::new(vec![math!($a).into(), $(math!($b).into()),*])
-    }};
+    ($a:tt $(+ $b:tt)+) => {
+        $crate::sum::Sum::new(vec![math!($a).into(), $(math!($b).into()),*])
+    };
     // Expand a-b
-    ($a:tt - $b:tt) => {{
-        use $crate::sum::Sum;
-        use $crate::negation::Negation;
-        Sum::new(vec![math!($a).into(), Negation::new(math!($b).into()).into()])
-    }};
+    ($a:tt - $b:tt) => {
+        $crate::sum::Sum::new(vec![
+            math!($a).into(),
+            $crate::negation::Negation::new(math!($b).into()).into(),
+        ])
+    };
     // Expand a*b*c*d...
-    ($a:tt $(* $b:tt)+) => {{
-        use $crate::product::Product;
-        Product::new(vec![math!($a).into(), $(math!($b).into()),*])
-    }};
+    ($a:tt $(* $b:tt)+) => {
+        $crate::product::Product::new(vec![math!($a).into(), $(math!($b).into()),*])
+    };
     // // Expand a/b
     // ($a:tt / $b:tt) => {
     //     Divide(math!($a), math!($b))
