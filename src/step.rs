@@ -5,10 +5,10 @@ use crate::{
 };
 
 pub(crate) struct Step {
-    label: Option<String>,
-    annotated_expression: Option<AnnotatedExpression>,
-    substeps: Vec<Step>,
-    result: Expression,
+    pub(crate) label: Option<String>,
+    pub(crate) annotated_expression: Option<AnnotatedExpression>,
+    pub(crate) substeps: Vec<Step>,
+    pub(crate) result: Expression,
 }
 
 impl Step {
