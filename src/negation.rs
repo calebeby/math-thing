@@ -1,11 +1,6 @@
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-};
-
 use crate::{
     annotated_expression::Annotation,
-    expression::{Expression, ExpressionId, PRECEDENCE_NEGATION},
+    expression::{gen_id, Expression, ExpressionId, PRECEDENCE_NEGATION},
     token_stream::TokenStream,
     tokens,
     traversable::Traversable,
@@ -21,11 +16,9 @@ pub(crate) struct Negation {
 impl Negation {
     #[inline]
     pub fn new(inner: Expression) -> Self {
-        let mut hasher = DefaultHasher::new();
-        inner.hash(&mut hasher);
         Self {
             inner,
-            id: hasher.finish(),
+            id: gen_id(),
         }
     }
     #[inline]
@@ -35,13 +28,6 @@ impl Negation {
     #[inline]
     pub(crate) fn id(&self) -> ExpressionId {
         self.id
-    }
-}
-
-impl Hash for Negation {
-    #[inline]
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state)
     }
 }
 

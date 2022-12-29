@@ -1,5 +1,5 @@
 use crate::{
-    expression::{Expression, ExpressionId},
+    expression::{Expression, ExpressionId, DEFAULT_PRINT_OPTS},
     token_stream::TokenStream,
     PrintOpts, Printable,
 };
@@ -27,6 +27,12 @@ impl AnnotatedExpression {
     }
 }
 
+impl std::fmt::Display for AnnotatedExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.print(&DEFAULT_PRINT_OPTS))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use insta::assert_display_snapshot;
@@ -41,11 +47,15 @@ mod tests {
         let y = Constant::new("y");
         let inner = math![x + y].expr();
         let annotation = Annotation::new(&inner);
-        let exp = math![{ inner } * x].expr();
-        assert_display_snapshot!(exp, @"(x + y) * x");
+        let exp = math![({ inner } * x) + (x + y)].expr();
+        assert_display_snapshot!(exp, @"(x + y) * x + (x + y)");
         let annotated_exp = AnnotatedExpression {
             expression: exp,
             annotations: vec![annotation],
         };
+        assert_display_snapshot!(annotated_exp, @r###"
+        (x + y) * x + (x + y)
+         ^^^^^
+        "###);
     }
 }

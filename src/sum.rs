@@ -1,11 +1,6 @@
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-};
-
 use crate::{
     annotated_expression::Annotation,
-    expression::{Expression, ExpressionId, PRECEDENCE_SUM},
+    expression::{gen_id, Expression, ExpressionId, PRECEDENCE_SUM},
     token_stream::TokenStream,
     tokens,
     traversable::Traversable,
@@ -21,11 +16,9 @@ pub(crate) struct Sum {
 impl Sum {
     #[inline]
     pub fn new(terms: Vec<Expression>) -> Self {
-        let mut hasher = DefaultHasher::new();
-        terms.hash(&mut hasher);
         Self {
             terms,
-            id: hasher.finish(),
+            id: gen_id(),
         }
     }
     #[inline]
@@ -36,13 +29,6 @@ impl Sum {
     #[inline]
     pub(crate) fn id(&self) -> ExpressionId {
         self.id
-    }
-}
-
-impl Hash for Sum {
-    #[inline]
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state)
     }
 }
 

@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub(crate) struct TokenStream(Vec<MathPrintToken>);
 
 impl FromIterator<MathPrintToken> for TokenStream {
@@ -6,6 +7,7 @@ impl FromIterator<MathPrintToken> for TokenStream {
     }
 }
 
+#[derive(Debug)]
 pub(crate) enum MathPrintToken {
     String(String),
     AnnotationStart,
@@ -35,17 +37,6 @@ impl From<String> for MathPrintToken {
     }
 }
 
-impl From<&MathPrintToken> for String {
-    #[inline]
-    fn from(value: &MathPrintToken) -> String {
-        match value {
-            MathPrintToken::String(s) => s.to_owned(),
-            MathPrintToken::AnnotationStart => "".to_owned(),
-            MathPrintToken::AnnotationEnd => "".to_owned(),
-        }
-    }
-}
-
 impl std::fmt::Display for TokenStream {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -55,11 +46,36 @@ impl std::fmt::Display for TokenStream {
 }
 
 pub(crate) fn print(token_stream: &TokenStream) -> String {
-    token_stream
-        .0
-        .iter()
-        .map(|t| -> String { t.into() })
-        .collect()
+    let mut math_line = String::new();
+    let mut annotation_line = String::new();
+
+    let mut has_seen_annotation = false;
+    let mut is_annotation = false;
+    for token in token_stream.0.iter() {
+        match token {
+            MathPrintToken::String(string) => {
+                math_line.push_str(string);
+                if is_annotation {
+                    annotation_line.push_str(&"^".repeat(string.len()));
+                } else {
+                    annotation_line.push_str(&" ".repeat(string.len()));
+                }
+            }
+            MathPrintToken::AnnotationStart => {
+                is_annotation = true;
+                has_seen_annotation = true;
+            }
+            MathPrintToken::AnnotationEnd => {
+                is_annotation = false;
+            }
+        }
+    }
+
+    if has_seen_annotation {
+        format!("{}\n{}", math_line, annotation_line.trim_end())
+    } else {
+        math_line
+    }
 }
 
 #[macro_export]

@@ -1,19 +1,14 @@
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-    rc::Rc,
-};
+use std::rc::Rc;
 
 use crate::{
     annotated_expression::Annotation,
-    expression::{Expression, ExpressionId},
+    expression::{gen_id, Expression, ExpressionId},
     token_stream::TokenStream,
     tokens,
     traversable::Traversable,
     PrintOpts, PrintTarget, Printable,
 };
 
-#[derive(Hash)]
 pub(crate) struct ConstantInfo {
     pub(crate) name: String,
 }
@@ -51,23 +46,14 @@ impl Constant {
         let constant_info = ConstantInfo {
             name: unicode_to_latex(name).to_owned(),
         };
-        let mut hasher = DefaultHasher::new();
-        constant_info.hash(&mut hasher);
         Constant {
             info: Rc::new(constant_info),
-            id: hasher.finish(),
+            id: gen_id(),
         }
     }
     #[inline]
     pub(crate) fn id(&self) -> ExpressionId {
         self.id
-    }
-}
-
-impl Hash for Constant {
-    #[inline]
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state)
     }
 }
 

@@ -1,21 +1,33 @@
 use std::rc::Rc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
-    annotated_expression::Annotation, constant::Constant, negation::Negation, product::Product,
-    sum::Sum, token_stream::TokenStream, traversable::Traversable, PrintOpts, Printable,
+    annotated_expression::Annotation,
+    constant::Constant,
+    negation::Negation,
+    product::Product,
+    sum::Sum,
+    token_stream::{MathPrintToken, TokenStream},
+    traversable::Traversable,
+    PrintOpts, Printable,
 };
 
 pub(crate) const PRECEDENCE_SUM: usize = 1;
 pub(crate) const PRECEDENCE_NEGATION: usize = 2;
 pub(crate) const PRECEDENCE_PRODUCT: usize = 3;
 pub(crate) const PRECEDENCE_CONSTANT: usize = 4;
-const DEFAULT_PRINT_OPTS: PrintOpts = PrintOpts {
+pub(crate) const DEFAULT_PRINT_OPTS: PrintOpts = PrintOpts {
     target: crate::PrintTarget::MathPrint,
 };
 
 pub(crate) type ExpressionId = u64;
 
-#[derive(Clone, Hash)]
+pub(crate) fn gen_id() -> u64 {
+    static COUNTER: AtomicU64 = AtomicU64::new(1);
+    COUNTER.fetch_add(1, Ordering::Relaxed)
+}
+
+#[derive(Clone)]
 pub(crate) enum Expression {
     Constant(Rc<Constant>),
     Product(Rc<Product>),
@@ -98,11 +110,23 @@ impl std::fmt::Debug for Expression {
 
 impl Printable for Expression {
     fn print<'a>(&'a self, print_opts: &'a PrintOpts, annotations: &[Annotation]) -> TokenStream {
-        match self {
+        let inner = match self {
             Expression::Constant(constant) => constant.print(print_opts, annotations),
             Expression::Product(product) => product.print(print_opts, annotations),
             Expression::Sum(sum) => sum.print(print_opts, annotations),
             Expression::Negation(neg) => neg.print(print_opts, annotations),
+        };
+        let id = self.id();
+        if annotations
+            .iter()
+            .any(|annotation| annotation.target_id == id)
+        {
+            std::iter::once(MathPrintToken::AnnotationStart)
+                .chain(inner)
+                .chain(std::iter::once(MathPrintToken::AnnotationEnd))
+                .collect()
+        } else {
+            inner
         }
     }
 }

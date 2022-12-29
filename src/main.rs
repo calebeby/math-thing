@@ -17,7 +17,7 @@ fn main() {}
 #[macro_export]
 macro_rules! math {
     ($a:ident) => {&$a};
-    ({$a:ident}) => {$a};
+    ({$a:expr}) => {$a};
     ($a:literal) => {$a};
     ((-$a:ident)) => {{
         use $crate::negation::Negation;
