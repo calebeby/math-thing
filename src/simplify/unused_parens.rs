@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, cell::RefCell};
 
 use crate::{
     annotated_expression::{AnnotatedExpression, Annotation},
@@ -16,7 +16,7 @@ pub(crate) enum TraverseResult {
 
 pub(crate) fn traverse<Visitor>(expr: &Expression, visitor: Visitor) -> Expression
 where
-    Visitor: Fn(&Expression, &dyn Fn() -> Expression) -> TraverseResult + Copy,
+    Visitor: Fn(&Expression, &mut dyn FnMut(Expression), &dyn Fn() -> Expression),
 {
     struct QueueItem<'a> {
         expr: Cow<'a, Expression>,
@@ -65,9 +65,12 @@ where
     // If the visitor produces a changed node, propagate the change upwards.
     // Whenever a change is produced, create a snapshot of the root expression for Steps
 
-    for i in (0..queue.len()).rev() {
+    let queue_len = queue.len();
+    let queue_refcell = RefCell::new(queue);
+    for i in (0..queue_len).rev() {
+        let queue = queue_refcell.borrow();
         let item = &queue[i];
-        let up_to_date_expr: &Expression = if item.invalidated_children {
+        let up_to_date_expr: Expression = if item.invalidated_children {
             // Create an updated expression based on the changed children
             let cow = Cow::Owned(Expression::from_children(
                 &item.expr,
@@ -81,17 +84,21 @@ where
                     })
                     .collect(),
             ));
-            let item = &mut queue[i];
+            drop(queue);
+            let item = &mut queue_refcell.borrow_mut()[i];
             item.expr = cow;
             item.invalidated_children = false;
-            &queue[i].expr
+            item.expr.as_ref().clone()
         } else {
-            &item.expr
+            let expr = item.expr.as_ref().clone();
+            drop(queue);
+            expr
         };
         fn snapshot_recursive(root: &QueueItem, queue: &[QueueItem]) -> Expression {
             if !root.invalidated_children {
                 root.expr.as_ref().clone()
             } else {
+                // TODO: Save this onto the object to save updating-work later
                 Expression::from_children(
                     &root.expr,
                     root.child_indices
@@ -105,48 +112,47 @@ where
                 )
             }
         }
-        let snapshot = || -> Expression { snapshot_recursive(&queue[0], &queue) };
 
-        let traverse_result = visitor(up_to_date_expr, &snapshot);
-        match traverse_result {
-            TraverseResult::Replace(replacement) => {
-                let item = &mut queue[i];
-                item.expr = Cow::Owned(replacement);
-                item.invalidated_children = false;
+        let snapshot = || -> Expression {
+            snapshot_recursive(&queue_refcell.borrow()[0], &queue_refcell.borrow())
+        };
 
-                let mut i = item.parent_index;
-                loop {
-                    if i == root_parent_index {
-                        break;
-                    }
-                    let parent = &mut queue[i];
-                    // If the parent already knows children are modified, no need to do anything.
-                    // This is fine, because when the parent gets modified, it will already get updated.
-                    // If the parent does not know that its children are modified,
-                    // now we need to mark it as modified and continue traversing upwards.
-                    if !parent.invalidated_children {
-                        parent.invalidated_children = true;
-                        i = parent.parent_index;
-                    } else {
-                        break;
-                    }
+        let mut replace = |replacement: Expression| {
+            let mut queue = queue_refcell.borrow_mut();
+            let item = &mut queue[i];
+            item.expr = Cow::Owned(replacement);
+            item.invalidated_children = false;
+
+            let mut i = item.parent_index;
+            loop {
+                if i == root_parent_index {
+                    break;
+                }
+                let parent = &mut queue[i];
+                // If the parent already knows children are modified, no need to do anything.
+                // This is fine, because when the parent gets modified, it will already get updated.
+                // If the parent does not know that its children are modified,
+                // now we need to mark it as modified and continue traversing upwards.
+                if !parent.invalidated_children {
+                    parent.invalidated_children = true;
+                    i = parent.parent_index;
+                } else {
+                    break;
                 }
             }
-            TraverseResult::LeaveAlone => {}
         };
+
+        visitor(&up_to_date_expr, &mut replace, &snapshot);
     }
 
-    // Using the iterator syntax to consume the queue item instead of [0]
-    let item = queue.into_iter().next().unwrap();
+    let item = &queue_refcell.borrow()[0];
     // It should have already been updated (it was the last to update, from end to start)
     assert!(!item.invalidated_children);
-    let exp = item.expr.into_owned();
-
-    exp
+    item.expr.clone().into_owned()
 }
 
 pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
-    traverse(expr, |node, snapshot| {
+    traverse(expr, |node, replace, snapshot| {
         let snapshot_before = snapshot();
         let mut annotations = vec![];
         match node {
@@ -168,6 +174,7 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
                             _ => terms.push(t.clone()),
                         };
                     }
+                    replace(Product::new(terms).expr());
                     println!(
                         "Step: {}",
                         Step {
@@ -180,9 +187,7 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
                             result: snapshot(),
                         }
                     );
-                    return TraverseResult::Replace(Product::new(terms).expr());
                 }
-                TraverseResult::LeaveAlone
             }
             Expression::Sum(prod) => {
                 if prod
@@ -202,6 +207,7 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
                             _ => terms.push(t.clone()),
                         };
                     }
+                    replace(Sum::new(terms).expr());
                     println!(
                         "Step: {}",
                         Step {
@@ -214,11 +220,9 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
                             result: snapshot(),
                         }
                     );
-                    return TraverseResult::Replace(Sum::new(terms).expr());
                 }
-                TraverseResult::LeaveAlone
             }
-            _ => TraverseResult::LeaveAlone,
+            _ => {}
         }
     })
 }
@@ -234,21 +238,17 @@ mod tests {
         let y = Constant::new("y");
         let z = Constant::new("z");
 
-        // let exp = math![(x * y) * z].expr();
-        // insta::assert_display_snapshot!(exp, @"(x * y) * z");
-        // insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
+        let exp = math![(x * y) * z].expr();
+        insta::assert_display_snapshot!(exp, @"(x * y) * z");
+        insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
 
-        // let exp = math![x * (y * z)].expr();
-        // insta::assert_display_snapshot!(exp, @"x * (y * z)");
-        // insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
+        let exp = math![x * (y * z)].expr();
+        insta::assert_display_snapshot!(exp, @"x * (y * z)");
+        insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
 
-        // let exp = Product::new(vec![math![(x * y) * z].expr()]).expr();
-        // insta::assert_display_snapshot!(exp, @"((x * y) * z)");
-        // insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
-
-        // let exp = math![((x * y) * (x * y)) * (z * (z * x * x))].expr();
-        // insta::assert_display_snapshot!(exp, @"((x * y) * (x * y)) * (z * (z * x * x))");
-        // insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * x * y * z * z * x * x");
+        let exp = math![((x * y) * (x * y)) * (z * (z * x * x))].expr();
+        insta::assert_display_snapshot!(exp, @"((x * y) * (x * y)) * (z * (z * x * x))");
+        insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * x * y * z * z * x * x");
 
         let exp = math![((x + y) + y) * (x * y) * ((z * x) + y)].expr();
         insta::assert_display_snapshot!(exp, @"((x + y) + y) * (x * y) * (z * x + y)");
