@@ -40,12 +40,12 @@ impl From<String> for MathPrintToken {
 impl std::fmt::Display for TokenStream {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&print(self))?;
+        f.write_str(&math_print(self))?;
         Ok(())
     }
 }
 
-pub(crate) fn print(token_stream: &TokenStream) -> String {
+pub(crate) fn math_print(token_stream: &TokenStream) -> String {
     let mut math_line = String::new();
     let mut annotation_line = String::new();
 
@@ -56,9 +56,9 @@ pub(crate) fn print(token_stream: &TokenStream) -> String {
             MathPrintToken::String(string) => {
                 math_line.push_str(string);
                 if is_annotation {
-                    annotation_line.push_str(&"^".repeat(string.len()));
+                    annotation_line.push_str(&"^".repeat(string.chars().count()));
                 } else {
-                    annotation_line.push_str(&" ".repeat(string.len()));
+                    annotation_line.push_str(&" ".repeat(string.chars().count()));
                 }
             }
             MathPrintToken::AnnotationStart => {
@@ -76,6 +76,18 @@ pub(crate) fn print(token_stream: &TokenStream) -> String {
     } else {
         math_line
     }
+}
+
+pub(crate) fn latex_print(token_stream: &TokenStream) -> String {
+    token_stream
+        .0
+        .iter()
+        .map(|token| match token {
+            MathPrintToken::String(string) => string,
+            MathPrintToken::AnnotationStart => r#"\htmlClass{hl}{"#,
+            MathPrintToken::AnnotationEnd => "}",
+        })
+        .collect()
 }
 
 #[macro_export]

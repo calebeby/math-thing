@@ -1,7 +1,8 @@
 use crate::{
     annotated_expression::AnnotatedExpression,
     expression::{Expression, DEFAULT_PRINT_OPTS},
-    PrintOpts, PrintTarget,
+    token_stream::latex_print,
+    PrintOpts, PrintTarget, Printable,
 };
 
 pub(crate) struct Step {
@@ -11,44 +12,84 @@ pub(crate) struct Step {
     pub(crate) result: Expression,
 }
 
+fn latex_to_html(input: &str) -> String {
+    let opts = katex::Opts::builder().trust(true).build().unwrap();
+    katex::render_with_opts(input, opts).unwrap()
+}
+
 impl Step {
-    fn print<'a>(&'a self, print_opts: &'a PrintOpts) -> String {
-        match print_opts.target {
-            PrintTarget::LaTex => todo!(),
-            PrintTarget::MathPrint => {
-                let mut inner = String::new();
-                if let Some(annotated_expression) = &self.annotated_expression {
-                    inner.push_str(&format!("\n{}", annotated_expression));
-                }
-                for step in &self.substeps {
-                    inner.push_str(&format!("\n{}", step.print(print_opts)));
-                }
-                inner.push_str(&format!("\n{}", self.result));
-                if let Some(label) = &self.label {
-                    format!(
-                        "{label}\n{}",
-                        inner
-                            .trim_start()
-                            .lines()
-                            .enumerate()
-                            .map(|(i, line)| if i == 0 {
-                                format!("  {line}")
-                            } else {
-                                format!("\n  {line}")
-                            })
-                            .collect::<String>()
-                    )
-                } else {
-                    inner
-                }
-            }
+    pub(crate) fn html_print<'a>(&'a self, print_opts: &'a PrintOpts) -> String {
+        let mut inner = String::new();
+        if let Some(annotated_expression) = &self.annotated_expression {
+            inner.push_str(&latex_to_html(&latex_print(
+                &annotated_expression.print(print_opts),
+            )));
+        }
+        for step in &self.substeps {
+            inner.push_str(&format!("\n<div>{}</div>", step.html_print(print_opts)));
+        }
+        let result = latex_to_html(&self.result.latex());
+        if let Some(label) = &self.label {
+            format!(
+                r###"
+                <details>
+                    <summary>
+                        {label}
+                    </summary>
+                    <div class="substeps">
+                    {}
+                    </div>
+                </details>
+                <div>{result}</div>
+                "###,
+                inner
+                    .trim_start()
+                    .lines()
+                    .enumerate()
+                    .map(|(i, line)| if i == 0 {
+                        format!("  {line}")
+                    } else {
+                        format!("\n  {line}")
+                    })
+                    .collect::<String>()
+            )
+        } else {
+            todo!()
+        }
+    }
+    // TODO: PrintOpts shouldn't include format in it
+    fn math_print<'a>(&'a self, print_opts: &'a PrintOpts) -> String {
+        let mut inner = String::new();
+        if let Some(annotated_expression) = &self.annotated_expression {
+            inner.push_str(&format!("\n{}", annotated_expression));
+        }
+        for step in &self.substeps {
+            inner.push_str(&format!("\n{}", step.math_print(print_opts)));
+        }
+        inner.push_str(&format!("\n{}", self.result));
+        if let Some(label) = &self.label {
+            format!(
+                "{label}\n{}",
+                inner
+                    .trim_start()
+                    .lines()
+                    .enumerate()
+                    .map(|(i, line)| if i == 0 {
+                        format!("  {line}")
+                    } else {
+                        format!("\n  {line}")
+                    })
+                    .collect::<String>()
+            )
+        } else {
+            inner
         }
     }
 }
 
 impl std::fmt::Display for Step {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.print(&DEFAULT_PRINT_OPTS))
+        write!(f, "{}", self.math_print(&DEFAULT_PRINT_OPTS))
     }
 }
 

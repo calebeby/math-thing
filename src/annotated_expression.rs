@@ -22,7 +22,7 @@ impl Annotation {
 }
 
 impl AnnotatedExpression {
-    fn print<'a>(&'a self, print_opts: &'a PrintOpts) -> TokenStream {
+    pub(crate) fn print<'a>(&'a self, print_opts: &'a PrintOpts) -> TokenStream {
         self.expression.print(print_opts, &self.annotations)
     }
 }

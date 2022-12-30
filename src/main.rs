@@ -1,4 +1,10 @@
+use std::fs::File;
+use std::io::Write;
+
 use annotated_expression::Annotation;
+use constant::Constant;
+use expression::{AsExpression, DEFAULT_PRINT_OPTS};
+use simplify::simplify_excess_parens;
 use token_stream::TokenStream;
 
 mod annotated_expression;
@@ -12,7 +18,61 @@ mod sum;
 mod token_stream;
 mod traverse;
 
-fn main() {}
+fn main() {
+    let a = Constant::new("a");
+    let b = Constant::new("b");
+    let pi = Constant::new("\\pi");
+    let x = Constant::new("x");
+    let y = Constant::new("y");
+    let exp = math![
+        (a + b + (x + y) + ((x - y) + ((x + y) + ((a * pi) * ((pi + x) * y)) + ((pi + x) + y))))
+    ]
+    .expr();
+
+    let steps = simplify_excess_parens(&exp);
+    println!("{}", steps);
+
+    let css = r###"
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css" integrity="sha384-vKruj+a13U8yHIkAyGgK1J3ArTLzrFGBbBc0tDp4ad/EyewESeXE/Iv67Aj8gKZ0" crossorigin="anonymous">
+        <style>
+            body {
+                font-size: 20px;
+            }
+            .katex .enclosing.hl {
+              background: #ffcb0094;
+              display: inline-block;
+              --padding-x: 0.05em;
+              --padding-y: 0em;
+              padding: var(--padding-y) var(--padding-x);
+              margin: calc(-1 * var(--padding-y)) calc(-1 * var(--padding-x));
+              border-radius: 0.3em;
+            }
+            .substeps {
+                margin-left: 2em;
+                position: relative;
+            }
+            .substeps::before {
+                display: block;
+                content: '';
+                width: 0.3em;
+                height: 100%;
+                position: absolute;
+                background: #0000002e;
+                left: -2em;
+                border-radius: 1000px;
+            }
+        </style>
+    "###;
+    let steps_html = format!(
+        "{css}\n{}",
+        steps.html_print(&PrintOpts {
+            target: PrintTarget::LaTex,
+        })
+    );
+
+    let mut file = File::create("example.html").unwrap();
+    writeln!(&mut file, "{}", steps_html).unwrap();
+}
 
 #[macro_export]
 macro_rules! math {
@@ -68,7 +128,7 @@ pub(crate) struct PrintOpts {
 
 trait Printable {
     fn latex_with_annotations(&self, annotations: &[Annotation]) -> String {
-        token_stream::print(&self.print(
+        token_stream::math_print(&self.print(
             &PrintOpts {
                 target: PrintTarget::LaTex,
             },

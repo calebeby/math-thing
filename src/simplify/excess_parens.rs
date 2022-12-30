@@ -7,7 +7,7 @@ use crate::{
     traverse::traverse,
 };
 
-pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
+pub(crate) fn simplify_excess_parens(expr: &Expression) -> Step {
     let mut steps = vec![];
     traverse(expr, |ctx| {
         let snapshot_before = ctx.snapshot();
@@ -33,7 +33,7 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
                     }
                     ctx.replace(Product::new(terms).expr());
                     steps.push(Step {
-                        label: "Remove extra parens around product".to_owned().into(),
+                        label: "Remove excess parentheses around product".to_owned().into(),
                         annotated_expression: Some(AnnotatedExpression {
                             expression: snapshot_before,
                             annotations,
@@ -63,7 +63,7 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
                     }
                     ctx.replace(Sum::new(terms).expr());
                     steps.push(Step {
-                        label: "Remove extra parens around sum".to_owned().into(),
+                        label: "Remove excess parentheses around sum".to_owned().into(),
                         annotated_expression: Some(AnnotatedExpression {
                             expression: snapshot_before,
                             annotations,
@@ -77,14 +77,12 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
         }
     });
 
-    let outer = Step {
-        label: "Simplify unused parentheses".to_owned().into(),
+    Step {
+        label: "Simplify excess parentheses".to_owned().into(),
         annotated_expression: None,
         result: steps.last().unwrap().result.clone(),
         substeps: steps,
-    };
-    println!("{outer}");
-    outer.result
+    }
 }
 
 #[cfg(test)]
@@ -93,25 +91,65 @@ mod tests {
     use crate::{constant::Constant, expression::AsExpression, math};
 
     #[test]
-    fn test_simplify_unused_parens() {
+    fn test_simplify_excess_parens() {
         let x = Constant::new("x");
         let y = Constant::new("y");
         let z = Constant::new("z");
 
         let exp = math![(x * y) * z].expr();
         insta::assert_display_snapshot!(exp, @"(x * y) * z");
-        insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
+        insta::assert_display_snapshot!(simplify_excess_parens(&exp), @r###"
+        Simplify excess parentheses
+          Remove excess parentheses around product
+            (x * y) * z
+             ^^^^^
+            x * y * z
+          x * y * z
+        "###);
 
         let exp = math![x * (y * z)].expr();
         insta::assert_display_snapshot!(exp, @"x * (y * z)");
-        insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * z");
+        insta::assert_display_snapshot!(simplify_excess_parens(&exp), @r###"
+        Simplify excess parentheses
+          Remove excess parentheses around product
+            x * (y * z)
+                 ^^^^^
+            x * y * z
+          x * y * z
+        "###);
 
         let exp = math![((x * y) * (x * y)) * (z * (z * x * x))].expr();
         insta::assert_display_snapshot!(exp, @"((x * y) * (x * y)) * (z * (z * x * x))");
-        insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"x * y * x * y * z * z * x * x");
+        insta::assert_display_snapshot!(simplify_excess_parens(&exp), @r###"
+        Simplify excess parentheses
+          Remove excess parentheses around product
+            ((x * y) * (x * y)) * (z * (z * x * x))
+              ^^^^^     ^^^^^
+            (x * y * x * y) * (z * (z * x * x))
+          Remove excess parentheses around product
+            (x * y * x * y) * (z * (z * x * x))
+                                    ^^^^^^^^^
+            (x * y * x * y) * (z * z * x * x)
+          Remove excess parentheses around product
+            (x * y * x * y) * (z * z * x * x)
+             ^^^^^^^^^^^^^     ^^^^^^^^^^^^^
+            x * y * x * y * z * z * x * x
+          x * y * x * y * z * z * x * x
+        "###);
 
         let exp = math![((x + y) + y) * (x * y) * ((z * x) + y)].expr();
         insta::assert_display_snapshot!(exp, @"((x + y) + y) * (x * y) * (z * x + y)");
-        insta::assert_display_snapshot!(simplify_unused_parens(&exp), @"(x + y + y) * x * y * (z * x + y)");
+        insta::assert_display_snapshot!(simplify_excess_parens(&exp), @r###"
+        Simplify excess parentheses
+          Remove excess parentheses around sum
+            ((x + y) + y) * (x * y) * (z * x + y)
+              ^^^^^
+            (x + y + y) * (x * y) * (z * x + y)
+          Remove excess parentheses around product
+            (x + y + y) * (x * y) * (z * x + y)
+                           ^^^^^
+            (x + y + y) * x * y * (z * x + y)
+          (x + y + y) * x * y * (z * x + y)
+        "###);
     }
 }
