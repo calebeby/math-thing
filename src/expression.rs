@@ -8,7 +8,7 @@ use crate::{
     product::Product,
     sum::Sum,
     token_stream::{MathPrintToken, TokenStream},
-    traversable::Traversable,
+    traverse::Traversable,
     PrintOpts, Printable,
 };
 

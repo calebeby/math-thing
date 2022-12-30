@@ -10,7 +10,7 @@ mod simplify;
 mod step;
 mod sum;
 mod token_stream;
-mod traversable;
+mod traverse;
 
 fn main() {}
 

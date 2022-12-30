@@ -3,7 +3,7 @@ use crate::{
     expression::{gen_id, Expression, ExpressionId, PRECEDENCE_SUM},
     token_stream::TokenStream,
     tokens,
-    traversable::Traversable,
+    traverse::Traversable,
     PrintOpts, PrintTarget, Printable,
 };
 
