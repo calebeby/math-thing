@@ -27,6 +27,11 @@ pub(crate) fn gen_id() -> u64 {
     COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
+pub(crate) fn counterplus() {
+    static COUNTERR: AtomicU64 = AtomicU64::new(0);
+    println!("Counter: {}", COUNTERR.fetch_add(1, Ordering::Relaxed));
+}
+
 #[derive(Clone)]
 pub(crate) enum Expression {
     Constant(Rc<Constant>),
@@ -142,6 +147,7 @@ impl Traversable for Expression {
     }
 
     fn from_children(original: &Self, children: Vec<Expression>) -> Expression {
+        counterplus();
         match original {
             Expression::Constant(original) => (&Constant::from_children(original, children)).into(),
             Expression::Product(original) => Product::from_children(original, children).into(),

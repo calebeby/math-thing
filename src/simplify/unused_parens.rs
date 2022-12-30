@@ -94,28 +94,28 @@ where
             drop(queue);
             expr
         };
-        fn snapshot_recursive(root: &QueueItem, queue: &[QueueItem]) -> Expression {
+        fn snapshot_recursive(root_index: usize, queue: &mut [QueueItem]) -> Expression {
+            let root = &queue[root_index];
             if !root.invalidated_children {
                 root.expr.as_ref().clone()
             } else {
-                // TODO: Save this onto the object to save updating-work later
-                Expression::from_children(
-                    &root.expr,
-                    root.child_indices
-                        .iter()
-                        .rev()
-                        .map(|&child_index| {
-                            let m = &queue[child_index];
-                            snapshot_recursive(m, queue)
-                        })
-                        .collect(),
-                )
+                let child_indices = root.child_indices.clone();
+                let children: Vec<_> = child_indices
+                    .iter()
+                    .rev()
+                    .map(|&child_index| snapshot_recursive(child_index, queue))
+                    .collect();
+                let root = &queue[root_index];
+                let updated_exp = Expression::from_children(&root.expr, children);
+
+                queue[root_index].expr = Cow::Owned(updated_exp.clone());
+                queue[root_index].invalidated_children = false;
+
+                updated_exp
             }
         }
 
-        let snapshot = || -> Expression {
-            snapshot_recursive(&queue_refcell.borrow()[0], &queue_refcell.borrow())
-        };
+        let snapshot = || -> Expression { snapshot_recursive(0, &mut queue_refcell.borrow_mut()) };
 
         let mut replace = |replacement: Expression| {
             let mut queue = queue_refcell.borrow_mut();
