@@ -77,9 +77,9 @@ impl TraverserContext<'_, '_> {
     }
 }
 
-pub(crate) fn traverse<Visitor>(expr: &Expression, visitor: Visitor) -> Expression
+pub(crate) fn traverse<Visitor>(expr: &Expression, mut visitor: Visitor) -> Expression
 where
-    Visitor: Fn(&mut TraverserContext),
+    Visitor: FnMut(&mut TraverserContext),
 {
     let mut queue = vec![];
     let mut stack = vec![StackItem {

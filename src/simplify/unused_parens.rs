@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
+    let mut steps = vec![];
     traverse(expr, |ctx| {
         let snapshot_before = ctx.snapshot();
         let mut annotations = vec![];
@@ -31,18 +32,15 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
                         };
                     }
                     ctx.replace(Product::new(terms).expr());
-                    println!(
-                        "Step: {}",
-                        Step {
-                            label: "Remove extra parens around product".to_owned().into(),
-                            annotated_expression: Some(AnnotatedExpression {
-                                expression: snapshot_before,
-                                annotations,
-                            }),
-                            substeps: vec![],
-                            result: ctx.snapshot(),
-                        }
-                    );
+                    steps.push(Step {
+                        label: "Remove extra parens around product".to_owned().into(),
+                        annotated_expression: Some(AnnotatedExpression {
+                            expression: snapshot_before,
+                            annotations,
+                        }),
+                        substeps: vec![],
+                        result: ctx.snapshot(),
+                    });
                 }
             }
             Expression::Sum(prod) => {
@@ -64,23 +62,29 @@ pub(crate) fn simplify_unused_parens(expr: &Expression) -> Expression {
                         };
                     }
                     ctx.replace(Sum::new(terms).expr());
-                    println!(
-                        "Step: {}",
-                        Step {
-                            label: "Remove extra parens around sum".to_owned().into(),
-                            annotated_expression: Some(AnnotatedExpression {
-                                expression: snapshot_before,
-                                annotations,
-                            }),
-                            substeps: vec![],
-                            result: ctx.snapshot(),
-                        }
-                    );
+                    steps.push(Step {
+                        label: "Remove extra parens around sum".to_owned().into(),
+                        annotated_expression: Some(AnnotatedExpression {
+                            expression: snapshot_before,
+                            annotations,
+                        }),
+                        substeps: vec![],
+                        result: ctx.snapshot(),
+                    });
                 }
             }
             _ => {}
         }
-    })
+    });
+
+    let outer = Step {
+        label: "Simplify unused parentheses".to_owned().into(),
+        annotated_expression: None,
+        result: steps.last().unwrap().result.clone(),
+        substeps: steps,
+    };
+    println!("{outer}");
+    outer.result
 }
 
 #[cfg(test)]
